@@ -11,6 +11,7 @@ from femlib.mesh.structured import (
     visualise_mesh
 )
 import matplotlib.pyplot as plt
+from pathlib import Path
 
 
 def main():
@@ -33,14 +34,21 @@ def main():
         print(f"  {edge}: {nodes}")
 
     # Visualise mesh
+    # Create output directory if it doesn't exist
+    output_dir = Path('outputs/figures')
+    output_dir.mkdir(parents=True, exist_ok=True)
     print("\nGenerating visualisation...")
     fig, ax = visualise_mesh(
         mesh,
         show_node_numbers=True,
         show_element_numbers=True
     )
-    plt.savefig('mesh_verification.png', dpi=150, bbox_inches='tight')
-    print("Saved mesh visualisation to 'mesh_verification.png'")
+    plt.savefig(
+        output_dir / 'mesh_verification.png', dpi=150, bbox_inches='tight')
+    print(
+        f"Saved mesh visualisation to "
+        f"'{output_dir / 'mesh_verification.png'}'"
+    )
     plt.show()
 
 
