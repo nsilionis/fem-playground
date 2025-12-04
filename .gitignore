@@ -44,3 +44,11 @@ Thumbs.db
 *.vtu
 output/
 results/
+
+# Figures
+*.png
+*.jpg
+*.jpeg
+*.pdf
+*.svg
+*.eps
