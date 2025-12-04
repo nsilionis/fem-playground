@@ -27,7 +27,7 @@ class Element2D(ABC):
         Total number of degrees of freedom (2 per node for 2D elements).
     """
 
-    def __init__(self, node_coords):
+    def __init__(self, node_coords, validate=True):
         """
         Initialise the 2D element.
 
@@ -36,6 +36,9 @@ class Element2D(ABC):
         node_coords : ndarray, shape (n_nodes, 2)
             Nodal coordinates [x, y] for each element node.
             Nodes should be ordered counter-clockwise.
+        validate : bool, optional
+            If True, validate element geometry on initialisation.
+            Default is True.
         """
         self.node_coords = np.asarray(node_coords, dtype=float)
         self.n_nodes = self.node_coords.shape[0]
@@ -47,6 +50,15 @@ class Element2D(ABC):
                 f"node_coords must have shape (n_nodes, 2), "
                 f"got {self.node_coords.shape}"
             )
+
+        # Optional geometry validation
+        if validate:
+            quality = self.check_element_quality()
+            if not quality['valid']:
+                raise ValueError(
+                    "Invalid element geometry detected:\n"
+                    + "\n".join(quality['warnings'])
+                )
 
     @property
     @abstractmethod
