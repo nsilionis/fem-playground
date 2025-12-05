@@ -10,6 +10,7 @@ from femlib.mesh.structured import (
     mesh_statistics,
     visualise_mesh
 )
+from femlib.postprocess import setup_plot_style
 import matplotlib.pyplot as plt
 from pathlib import Path
 
@@ -38,16 +39,17 @@ def main():
     output_dir = Path('outputs/figures')
     output_dir.mkdir(parents=True, exist_ok=True)
     print("\nGenerating visualisation...")
+    setup_plot_style()
     fig, ax = visualise_mesh(
         mesh,
         show_node_numbers=True,
         show_element_numbers=True
     )
     plt.savefig(
-        output_dir / 'mesh_verification.png', dpi=150, bbox_inches='tight')
+        output_dir / 'mesh_verification.pdf', dpi=300, bbox_inches='tight')
     print(
         f"Saved mesh visualisation to "
-        f"'{output_dir / 'mesh_verification.png'}'"
+        f"'{output_dir / 'mesh_verification.pdf'}'"
     )
     plt.show()
 
