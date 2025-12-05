@@ -214,45 +214,90 @@ def visualise_mesh(mesh, show_node_numbers=False,
     nodes = mesh['nodes']
     elements = mesh['elements']
 
-    fig, ax = plt.subplots(figsize=(10, 6))
+    fig, ax = plt.subplots(figsize=(10, 4))
 
-    # Plot elements
+    # Compute domain extents and small padding so
+    # the mesh fills most of the canvas
+    x_min, x_max = nodes[:, 0].min(), nodes[:, 0].max()
+    y_min, y_max = nodes[:, 1].min(), nodes[:, 1].max()
+    range_x = x_max - x_min
+    range_y = y_max - y_min
+    pad = 0.02 * max(range_x, range_y) if max(range_x, range_y) > 0 else 0.01
+
+    ax.set_xlim(x_min - pad, x_max + pad)
+    ax.set_ylim(y_min - pad, y_max + pad)
+
+    # Colors: pastel blue for nodes, light green fill and darker
+    # green edges for elements
+    node_color = '#89CFF0'  # pastel blue
+    elem_face_color = '#c7f0c7'  # light green
+    elem_edge_color = '#2e8b57'  # darker green
+
+    # Draw filled element polygons first (lower zorder)
+    from matplotlib.patches import Polygon as MPolygon
+
     for elem_id, elem_nodes in enumerate(elements):
-        # Get coordinates of element nodes (close the loop)
         elem_coords = nodes[elem_nodes]
-        elem_x = np.append(elem_coords[:, 0], elem_coords[0, 0])
-        elem_y = np.append(elem_coords[:, 1], elem_coords[0, 1])
+        poly = MPolygon(
+            elem_coords,
+            closed=True,
+            facecolor=elem_face_color,
+            edgecolor=elem_edge_color,
+            linewidth=0.8,
+            alpha=0.5,
+            zorder=1
+        )
+        ax.add_patch(poly)
 
-        ax.plot(elem_x, elem_y, 'b-', linewidth=1)
-
-        # Optionally show element numbers
+        # Optionally show element numbers at centroids with a subtle white bbox
         if show_element_numbers:
             centroid_x = elem_coords[:, 0].mean()
             centroid_y = elem_coords[:, 1].mean()
             ax.text(
-                centroid_x, centroid_y, str(elem_id),
-                ha='center', va='center',
-                fontsize=8, color='red'
+                centroid_x, centroid_y, str(elem_id + 1),
+                ha='center', va='center', fontsize=8,
+                color=elem_edge_color,
+                bbox=dict(boxstyle='round,pad=0.2', facecolor='white',
+                          alpha=0.8, linewidth=0),
+                zorder=4
             )
 
-    # Plot nodes
-    ax.plot(nodes[:, 0], nodes[:, 1], 'ko', markersize=4)
+    # Plot nodes on top of element patches
+    ax.scatter(nodes[:, 0], nodes[:, 1], c=node_color,
+               edgecolors='k', s=36, zorder=3)
 
-    # Optionally show node numbers
+    # Optionally show node numbers with a slight offset
+    # to avoid overlapping markers/lines
     if show_node_numbers:
+        # offset proportional to domain size
+        dx = 0.015 * max(range_x, 1.0)
+        dy = 0.015 * max(range_y, 1.0)
         for node_id, (x, y) in enumerate(nodes):
             ax.text(
-                x, y, f' {node_id}',
-                fontsize=7, color='blue',
-                ha='left', va='bottom'
+                x + dx, y + dy, str(node_id + 1),
+                fontsize=7, color='#0b3d91',
+                ha='left', va='bottom',
+                bbox=dict(boxstyle='round,pad=0.12',
+                          facecolor='white', alpha=0.85, linewidth=0),
+                zorder=4
             )
 
-    ax.set_xlabel('x')
-    ax.set_ylabel('y')
-    ax.set_title('Structured Q4 Mesh')
+    ax.set_xlabel(r'$x \ \mathrm{[m]}$')
+    ax.set_ylabel(r'$y \ \mathrm{[m]}$')
+    # Intentionally skip figure title as requested
     ax.set_aspect('equal')
-    ax.grid(True, alpha=0.3)
 
-    plt.tight_layout()
+    # Remove background grid to reduce clutter
+    ax.grid(False)
+
+    # Tighten axes so the mesh fills most of the figure canvas
+    plt.tight_layout(pad=0.2)
+    try:
+        # small margins so plot occupies most of
+        # the canvas without clipping labels
+        fig.subplots_adjust(left=0.03, right=0.98, top=0.98, bottom=0.06)
+    except Exception:
+        # If adjustment fails for any backend, fall back to tight_layout only
+        pass
 
     return fig, ax
