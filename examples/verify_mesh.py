@@ -19,7 +19,7 @@ def main():
     """Create and visualise a test mesh."""
     # Create a simple mesh for the cantilever problem
     print("Creating rectangular mesh...")
-    mesh = create_rectangular_mesh(Lx=10.0, Ly=1.0, nx=16, ny=4)
+    mesh = create_rectangular_mesh(Lx=10.0, Ly=1.0, nx=12, ny=2)
 
     # Print statistics
     stats = mesh_statistics(mesh)
@@ -42,8 +42,8 @@ def main():
     setup_plot_style()
     fig, ax = visualise_mesh(
         mesh,
-        show_node_numbers=False,
-        show_element_numbers=False
+        show_node_numbers=True,
+        show_element_numbers=True
     )
     plt.savefig(
         output_dir / 'mesh_verification.pdf', dpi=300, bbox_inches='tight')
