@@ -156,7 +156,7 @@ def main():
 
     # Geometry
     L = 10.0  # Length [m]
-    h = 1.0  # Height [m]
+    h = 0.5  # Height [m]
     t = 0.1  # Thickness [m]
 
     # Material properties
@@ -165,11 +165,11 @@ def main():
 
     # Loading
     P = -10000.0  # Point load at tip [N] (negative = downward)
-    q = -1000.0  # Distributed load [N/m] (negative = downward)
+    q = 0.0  # Distributed load [N/m] (negative = downward)
 
     # Mesh density
-    nx = 40  # Elements along length
-    ny = 10  # Elements along height
+    nx = 8  # Elements along length
+    ny = 1  # Elements along height
 
     print("\nProblem Parameters:")
     print(f"  Geometry: L={L:.1f} m, h={h:.1f} m, t={t:.3f} m")
@@ -220,7 +220,7 @@ def main():
 
     # Assemble stiffness matrix
     print("  Assembling stiffness matrix...")
-    K = assemble_stiffness(mesh, material, integration_order="full")
+    K = assemble_stiffness(mesh, material, integration_order="reduced")
     print(f"    K shape: {K.shape}")
 
     # Assemble load vector
@@ -349,8 +349,9 @@ def main():
     ax.set_xlim(-0.2, L + 0.2)
 
     plt.tight_layout()
-    output_path = output_dir / "cantilever_verification_deflection.pdf"
-    plt.savefig(output_path, bbox_inches="tight")
+    filename = "tip_deflection_40x10_full.png"
+    output_path = output_dir / filename
+    plt.savefig(output_path, dpi=300, bbox_inches="tight")
     print(f"  Saved: {output_path}")
 
     # Plot 2: Error distribution
@@ -374,7 +375,8 @@ def main():
     ax.set_ylim(bottom=0)
 
     plt.tight_layout()
-    output_path = output_dir / "cantilever_verification_error.pdf"
+    fname = "verification_error_40x10_full.png"
+    output_path = output_dir / fname
     plt.savefig(output_path, bbox_inches="tight")
     print(f"  Saved: {output_path}")
 
