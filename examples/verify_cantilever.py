@@ -156,7 +156,7 @@ def main():
 
     # Geometry
     L = 10.0  # Length [m]
-    h = 0.5  # Height [m]
+    h = 1.0  # Height [m]
     t = 0.1  # Thickness [m]
 
     # Material properties
@@ -165,11 +165,11 @@ def main():
 
     # Loading
     P = -10000.0  # Point load at tip [N] (negative = downward)
-    q = 0.0  # Distributed load [N/m] (negative = downward)
+    q = 0  # Distributed load [N/m] (negative = downward)
 
     # Mesh density
-    nx = 8  # Elements along length
-    ny = 1  # Elements along height
+    nx = 40  # Elements along length
+    ny = 10  # Elements along height
 
     print("\nProblem Parameters:")
     print(f"  Geometry: L={L:.1f} m, h={h:.1f} m, t={t:.3f} m")
@@ -220,7 +220,7 @@ def main():
 
     # Assemble stiffness matrix
     print("  Assembling stiffness matrix...")
-    K = assemble_stiffness(mesh, material, integration_order="reduced")
+    K = assemble_stiffness(mesh, material, integration_order="full")
     print(f"    K shape: {K.shape}")
 
     # Assemble load vector
@@ -234,7 +234,7 @@ def main():
 
     load_spec = {
         "concentrated": [
-            {"location": mesh["nodes"][tip_node], "force": [0.0, P]}
+            {"location": mesh["nodes"][tip_node], "force": [0.0, 0]}
         ],
         "distributed": [{"edge": "top", "load_density": [0.0, q]}],
     }
