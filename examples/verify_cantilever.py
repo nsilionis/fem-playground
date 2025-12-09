@@ -156,7 +156,7 @@ def main():
 
     # Geometry
     L = 10.0  # Length [m]
-    h = 1.0  # Height [m]
+    h = 0.5  # Height [m]
     t = 0.1  # Thickness [m]
 
     # Material properties
@@ -165,11 +165,11 @@ def main():
 
     # Loading
     P = -10000.0  # Point load at tip [N] (negative = downward)
-    q = 0  # Distributed load [N/m] (negative = downward)
+    q = -1000.0  # Distributed load [N/m] (negative = downward)
 
     # Mesh density
-    nx = 40  # Elements along length
-    ny = 10  # Elements along height
+    nx = 100  # Elements along length
+    ny = 100  # Elements along height
 
     print("\nProblem Parameters:")
     print(f"  Geometry: L={L:.1f} m, h={h:.1f} m, t={t:.3f} m")
@@ -220,7 +220,7 @@ def main():
 
     # Assemble stiffness matrix
     print("  Assembling stiffness matrix...")
-    K = assemble_stiffness(mesh, material, integration_order="full")
+    K = assemble_stiffness(mesh, material, integration_order="reduced")
     print(f"    K shape: {K.shape}")
 
     # Assemble load vector
@@ -234,7 +234,7 @@ def main():
 
     load_spec = {
         "concentrated": [
-            {"location": mesh["nodes"][tip_node], "force": [0.0, 0]}
+            {"location": mesh["nodes"][tip_node], "force": [0.0, P]}
         ],
         "distributed": [{"edge": "top", "load_density": [0.0, q]}],
     }
@@ -311,7 +311,7 @@ def main():
     output_dir.mkdir(parents=True, exist_ok=True)
 
     # Plot 1: Deflection comparison
-    fig, ax = plt.subplots(figsize=(10, 5))
+    fig, ax = plt.subplots(figsize=(6.4, 3.6))
 
     # Analytical solution (smooth curve)
     x_smooth = np.linspace(0, L, 200)
@@ -349,13 +349,13 @@ def main():
     ax.set_xlim(-0.2, L + 0.2)
 
     plt.tight_layout()
-    filename = "tip_deflection_40x10_full.png"
+    filename = "tip_deflection_100x100_reduced.png"
     output_path = output_dir / filename
     plt.savefig(output_path, dpi=300, bbox_inches="tight")
     print(f"  Saved: {output_path}")
 
     # Plot 2: Error distribution
-    fig, ax = plt.subplots(figsize=(10, 5))
+    fig, ax = plt.subplots(figsize=(6.4, 3.6))
 
     ax.plot(
         x_fem,
@@ -375,7 +375,7 @@ def main():
     ax.set_ylim(bottom=0)
 
     plt.tight_layout()
-    fname = "verification_error_40x10_full.png"
+    fname = "verification_error_100x100_reduced.png"
     output_path = output_dir / fname
     plt.savefig(output_path, bbox_inches="tight")
     print(f"  Saved: {output_path}")

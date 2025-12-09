@@ -19,7 +19,7 @@ def main():
     """Create and visualise a test mesh."""
     # Create a simple mesh for the cantilever problem
     print("Creating rectangular mesh...")
-    mesh = create_rectangular_mesh(Lx=10.0, Ly=1.0, nx=40, ny=10)
+    mesh = create_rectangular_mesh(Lx=10.0, Ly=0.5, nx=10, ny=1)
 
     # Print statistics
     stats = mesh_statistics(mesh)
@@ -38,13 +38,13 @@ def main():
     # Create output directory if it doesn't exist
     output_dir = Path('outputs/figures')
     output_dir.mkdir(parents=True, exist_ok=True)
-    filename = "mesh_40x10.png"
+    filename = "mesh_10x1.pdf"
     print("\nGenerating visualisation...")
     setup_plot_style()
     fig, ax = visualise_mesh(
         mesh,
-        show_node_numbers=False,
-        show_element_numbers=False
+        show_node_numbers=True,
+        show_element_numbers=True
     )
     plt.savefig(
         output_dir / filename, dpi=300, bbox_inches='tight')

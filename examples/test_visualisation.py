@@ -24,12 +24,12 @@ setup_plot_style()
 
 # Geometry
 L, h, t = 10.0, 0.5, 0.1
-mesh = create_rectangular_mesh(L, h, nx=40, ny=10)
+mesh = create_rectangular_mesh(L, h, nx=10, ny=1)
 material = LinearElastic(E=210e9, nu=0.3, thickness=t,
                          plane_type='stress')
 
 # Solve
-K = assemble_stiffness(mesh, material, 'full')
+K = assemble_stiffness(mesh, material, 'reduced')
 # Point load at tip (find node at x=L, y=h/2)
 tip_node = np.argmin(
         (mesh["nodes"][:, 0] - L) ** 2
@@ -60,24 +60,24 @@ fig, ax, cbar = plot_stress_field(
     mesh, field_data, 'von_mises',
     levels=40, show_mesh=True
 )
-plt.savefig(output_dir / 'stress_von_mises.pdf')
-print(f"Saved: {output_dir / 'stress_von_mises.pdf'}")
+plt.savefig(output_dir / 'stress_von_mises_reduced_10x1.pdf')
+print(f"Saved: {output_dir / 'stress_von_mises_reduced_10x1.pdf'}")
 
 # Plot sigma_xx
 fig, ax, cbar = plot_stress_field(
     mesh, field_data, 'sigma_xx',
     levels=40, show_mesh=True
 )
-plt.savefig(output_dir / 'stress_sigma_xx.pdf')
-print(f"Saved: {output_dir / 'stress_sigma_xx.pdf'}")
+plt.savefig(output_dir / 'stress_sigma_xx_reduced_10x1.pdf')
+print(f"Saved: {output_dir / 'stress_sigma_xx_reduced_10x1.pdf'}")
 
 # Plot vertical displacement
 fig, ax, cbar = plot_displacement_field(
     mesh, u, 'v',
     levels=40, show_mesh=True
 )
-plt.savefig(output_dir / 'displacement_v.pdf')
-print(f"Saved: {output_dir / 'displacement_v.pdf'}")
+plt.savefig(output_dir / 'displacement_v_reduced_10x1.pdf')
+print(f"Saved: {output_dir / 'displacement_v_reduced_10x1.pdf'}")
 
 plt.show()
 
