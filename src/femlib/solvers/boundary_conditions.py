@@ -83,15 +83,26 @@ def apply_dirichlet_bc(K, F, bc_specification, method='elimination'):
     F : ndarray, shape (n_dofs,)
         Global force vector.
     bc_specification : dict
-        Boundary condition specification. Format:
+        Boundary condition specification. Two formats supported:
+
+        **Format 1 (Legacy - same constraint for all nodes):**
         {
             'nodes': array of node indices,
-            'dofs': list of DOF types to constrain,
-            'values': list of prescribed values
+            'dofs': list with single DOF type to constrain,
+            'values': list with single prescribed value
         }
+        DOF type: 'x', 'y', or 'both' (applied to ALL nodes)
+        Value: prescribed displacement (applied to ALL constrained DOFs)
 
-        DOF types: 'x', 'y', or 'both'
-        Values: corresponding prescribed displacements
+        **Format 2 (Flexible - individual constraints per node):**
+        {
+            'constraints': [
+                {'node': int, 'dof': str, 'value': float},
+                {'node': int, 'dof': str, 'value': float},
+                ...
+            ]
+        }
+        Each constraint dict specifies one node with its DOF type and value.
 
     method : str, optional
         Method for applying BCs:
@@ -112,10 +123,21 @@ def apply_dirichlet_bc(K, F, bc_specification, method='elimination'):
 
     Examples
     --------
+    >>> # Legacy format: Fix all nodes in both directions
     >>> bc = {
     ...     'nodes': np.array([0, 5, 10]),
     ...     'dofs': ['both'],
     ...     'values': [0.0]
+    ... }
+    >>> K_bc, F_bc, c_dofs, c_vals = apply_dirichlet_bc(K, F, bc)
+
+    >>> # Flexible format: Different constraints per node
+    >>> bc = {
+    ...     'constraints': [
+    ...         {'node': 0, 'dof': 'both', 'value': 0.0},
+    ...         {'node': 1, 'dof': 'x', 'value': 0.0},
+    ...         {'node': 2, 'dof': 'y', 'value': 0.5}
+    ...     ]
     ... }
     >>> K_bc, F_bc, c_dofs, c_vals = apply_dirichlet_bc(K, F, bc)
 
@@ -126,16 +148,52 @@ def apply_dirichlet_bc(K, F, bc_specification, method='elimination'):
 
     For fixed supports (zero displacement), values should be [0.0].
     """
-    nodes = bc_specification['nodes']
-    dof_types = bc_specification['dofs']
-    values = bc_specification['values']
-
     # Build list of constrained DOFs and their prescribed values
     constrained_dofs = []
     prescribed_values = []
 
-    for node in nodes:
-        for dof_type, value in zip(dof_types, values):
+    # Check which format is being used
+    if 'constraints' in bc_specification:
+        # Format 2: Flexible individual constraints
+        for constraint in bc_specification['constraints']:
+            node = constraint['node']
+            dof_type = constraint['dof']
+            value = constraint['value']
+
+            if dof_type == 'x':
+                constrained_dofs.append(2 * node)
+                prescribed_values.append(value)
+            elif dof_type == 'y':
+                constrained_dofs.append(2 * node + 1)
+                prescribed_values.append(value)
+            elif dof_type == 'both':
+                constrained_dofs.extend([2 * node, 2 * node + 1])
+                prescribed_values.extend([value, value])
+            else:
+                raise ValueError(
+                    f"Unknown DOF type '{dof_type}'. "
+                    f"Must be 'x', 'y', or 'both'."
+                )
+
+    else:
+        # Format 1: Legacy format (same constraint for all nodes)
+        nodes = bc_specification['nodes']
+        dof_types = bc_specification['dofs']
+        values = bc_specification['values']
+
+        # Validate legacy format: should have single dof type and value
+        if len(dof_types) != 1 or len(values) != 1:
+            raise ValueError(
+                "Legacy format requires exactly one DOF type and one value. "
+                "For multiple different constraints, use the flexible format:\n"
+                "bc = {'constraints': [{'node': i, 'dof': 'x', 'value': v}, ...]}"
+            )
+
+        dof_type = dof_types[0]
+        value = values[0]
+
+        # Apply same constraint to all nodes
+        for node in nodes:
             if dof_type == 'x':
                 constrained_dofs.append(2 * node)
                 prescribed_values.append(value)
