@@ -36,6 +36,8 @@ def create_rectangular_mesh(Lx, Ly, nx, ny):
         - 'elements': ndarray, shape (n_elements, 4)
             Element connectivity with counter-clockwise node ordering.
             Each row contains global node indices [n0, n1, n2, n3].
+        - 'element_type': str
+            Element type identifier ('Q4' for this mesh).
         - 'boundary_nodes': dict
             Dictionary with keys 'left', 'right', 'bottom', 'top',
             each containing arrays of boundary node indices.
@@ -141,6 +143,7 @@ def create_rectangular_mesh(Lx, Ly, nx, ny):
     mesh = {
         'nodes': nodes,
         'elements': elements,
+        'element_type': 'Q4',
         'boundary_nodes': boundary_nodes
     }
 
