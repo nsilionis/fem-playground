@@ -6,7 +6,6 @@ and load vectors from element-level contributions.
 """
 
 import numpy as np
-from ..elements import Q4Element
 
 
 def get_element_dofs(element_nodes, dofs_per_node=2):
@@ -55,15 +54,20 @@ def assemble_stiffness(mesh, material, integration_order='full'):
     matrices, and scatters them to the global stiffness matrix using
     the element DOF connectivity.
 
+    The element type is determined from the mesh specification, and
+    the appropriate element class is instantiated using a factory pattern.
+
     Parameters
     ----------
     mesh : dict
         Mesh dictionary containing:
         - 'nodes': (n_nodes, 2) nodal coordinates
         - 'elements': (n_elements, n_nodes_per_elem) connectivity
+        - 'element_type': str, element type identifier (e.g., 'Q4', 'Truss')
+          If not provided, defaults to 'Q4' for backward compatibility.
     material : Material
-        Material object (e.g., LinearElastic) providing
-        constitutive_matrix() and thickness.
+        Material object (e.g., LinearElastic2D, LinearElasticTruss)
+        providing constitutive properties.
     integration_order : str, optional
         Integration scheme: 'full' or 'reduced'. Default is 'full'.
 
@@ -75,12 +79,22 @@ def assemble_stiffness(mesh, material, integration_order='full'):
     Examples
     --------
     >>> from femlib.mesh import create_rectangular_mesh
-    >>> from femlib.materials import LinearElastic
+    >>> from femlib.materials import LinearElastic2D
     >>> mesh = create_rectangular_mesh(10.0, 1.0, 4, 2)
-    >>> material = LinearElastic(E=210e9, nu=0.3, thickness=0.1)
+    >>> material = LinearElastic2D(E=210e9, nu=0.3, thickness=0.1)
     >>> K = assemble_stiffness(mesh, material, 'full')
     >>> K.shape
     (78, 78)
+
+    >>> # Truss example
+    >>> from femlib.materials import LinearElasticTruss
+    >>> truss_mesh = {
+    ...     'nodes': np.array([[0, 0], [1, 0], [0.5, 1]]),
+    ...     'elements': np.array([[0, 1], [1, 2], [2, 0]]),
+    ...     'element_type': 'Truss'
+    ... }
+    >>> material = LinearElasticTruss(E=200e9, A=0.001)
+    >>> K = assemble_stiffness(truss_mesh, material, 'reduced')
 
     Notes
     -----
@@ -90,12 +104,38 @@ def assemble_stiffness(mesh, material, integration_order='full'):
 
     For large problems, consider using sparse matrix formats
     (scipy.sparse) to reduce memory usage.
+
+    Raises
+    ------
+    ValueError
+        If element_type is not recognized or not available.
     """
+    # Import element classes (lazy import to avoid circular dependencies)
+    from ..elements import Q4Element, Truss
+
+    # Element type registry
+    ELEMENT_TYPES = {
+        'Q4': Q4Element,
+        'Truss': Truss,
+    }
+
     nodes = mesh['nodes']
     elements = mesh['elements']
 
+    # Determine element type from mesh specification
+    element_type_str = mesh.get('element_type', 'Q4')  # Default to Q4
+
+    if element_type_str not in ELEMENT_TYPES:
+        available = ', '.join(ELEMENT_TYPES.keys())
+        raise ValueError(
+            f"Unknown element type '{element_type_str}'. "
+            f"Available types: {available}"
+        )
+
+    ElementClass = ELEMENT_TYPES[element_type_str]
+
     n_nodes = nodes.shape[0]
-    n_dofs = 2 * n_nodes  # 2 DOFs per node (u, v)
+    n_dofs = 2 * n_nodes  # 2 DOFs per node (u, v) for 2D problems
 
     # Initialise global stiffness matrix (dense for now)
     K_global = np.zeros((n_dofs, n_dofs))
@@ -105,8 +145,8 @@ def assemble_stiffness(mesh, material, integration_order='full'):
         # Extract nodal coordinates for this element
         elem_coords = nodes[elem_nodes]
 
-        # Create element object
-        element = Q4Element(elem_coords)
+        # Create element object using factory pattern
+        element = ElementClass(elem_coords)
 
         # Compute element stiffness matrix
         K_e = element.compute_stiffness_matrix(
@@ -118,8 +158,6 @@ def assemble_stiffness(mesh, material, integration_order='full'):
         elem_dofs = get_element_dofs(elem_nodes)
 
         # Scatter element matrix to global matrix
-        # K_global[elem_dofs, elem_dofs] += K_e would use broadcasting
-        # but explicit loop is clearer for educational purposes:
         for i, dof_i in enumerate(elem_dofs):
             for j, dof_j in enumerate(elem_dofs):
                 K_global[dof_i, dof_j] += K_e[i, j]
