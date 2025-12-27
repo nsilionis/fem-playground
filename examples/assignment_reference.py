@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 from tabulate import tabulate
 
 from femlib.mesh import create_rectangular_mesh
-from femlib.materials import LinearElastic
+from femlib.materials import LinearElastic2D
 from femlib.assembly import assemble_stiffness, assemble_load_vector
 from femlib.solvers import (
     identify_boundary_nodes,
@@ -121,7 +121,7 @@ def solve_cantilever(L, h, t, E, nu, P, nx, ny, integration_order):
     mesh = create_rectangular_mesh(L, h, nx, ny)
 
     # Define material
-    material = LinearElastic(
+    material = LinearElastic2D(
         E=E,
         nu=nu,
         thickness=t,
@@ -209,7 +209,7 @@ def main():
     mesh_configs = [
         (8, 1, 'o', '-', 8),      # (nx, ny, marker, linestyle, size)
         (16, 4, 's', '--', 6),
-        (100, 50, '^', ':', 4)
+        (40, 20, '^', ':', 4)
     ]
 
     colors = ['#1f77b4', '#ff7f0e', '#2ca02c']
