@@ -58,6 +58,16 @@ class Q4Element(Element2D):
         """Return element type identifier."""
         return 'Q4'
 
+    @property
+    def n_nodes(self):
+        """Return number of nodes in element."""
+        return 4
+
+    @property
+    def n_dof(self):
+        """Return total degrees of freedom."""
+        return 8
+
     def shape_functions(self, xi, eta):
         """
         Evaluate Q4 shape functions at (ξ, η).

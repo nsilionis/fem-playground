@@ -1,14 +1,15 @@
 """
-Provides element formulations for finite element analysis.
+Finite element formulations.
 
-Provides element classes for various finite element types with
-isoparametric formulation.
+Provides element classes for various element types (continuum, structural).
 """
 
-from .base import Element2D
+from .base import ElementBase, Element1D, Element2D
 from .quad4 import Q4Element
 
 __all__ = [
+    'ElementBase',
+    'Element1D',
     'Element2D',
     'Q4Element',
 ]

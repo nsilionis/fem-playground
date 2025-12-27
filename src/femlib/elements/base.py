@@ -2,20 +2,265 @@
 Base classes for finite elements.
 
 This module provides abstract base classes that define the interface
-for all finite element types in the library.
+for all finite element types in the library. All elements use
+isoparametric formulation.
 """
 
 from abc import ABC, abstractmethod
 import numpy as np
 
 
-class Element2D(ABC):
+class ElementBase(ABC):
     """
-    Abstract base class for 2D finite elements.
+    Abstract base class for all finite elements.
 
-    All 2D element types (plane stress, plane strain) must inherit from
-    this class and implement the abstract methods to define element-specific
-    behaviour.
+    Defines the minimal interface that all element types must implement,
+    regardless of their parametric dimension or formulation.
+
+    Attributes
+    ----------
+    node_coords : ndarray
+        Nodal coordinates in global coordinate system.
+    n_nodes : int
+        Number of nodes in the element.
+    n_dof : int
+        Total number of degrees of freedom.
+    """
+
+    @property
+    @abstractmethod
+    def element_type(self):
+        """
+        Return element type identifier (e.g., 'Q4', 'Truss', 'Beam').
+
+        Returns
+        -------
+        str
+            Element type string.
+        """
+        pass
+
+    @property
+    @abstractmethod
+    def n_nodes(self):
+        """
+        Return number of nodes in element.
+
+        Returns
+        -------
+        int
+            Number of nodes.
+        """
+        pass
+
+    @property
+    @abstractmethod
+    def n_dof(self):
+        """
+        Return total degrees of freedom.
+
+        Returns
+        -------
+        int
+            Total DOFs (n_nodes × dofs_per_node).
+        """
+        pass
+
+    @abstractmethod
+    def compute_stiffness_matrix(self, material, **kwargs):
+        """
+        Compute element stiffness matrix in global coordinates.
+
+        Parameters
+        ----------
+        material : Material
+            Material object providing constitutive properties.
+        **kwargs
+            Additional element-specific parameters.
+
+        Returns
+        -------
+        K_e : ndarray
+            Element stiffness matrix in global coordinates.
+        """
+        pass
+
+
+class Element1D(ElementBase):
+    """
+    Abstract base class for 1D isoparametric elements in 2D/3D space.
+
+    1D elements (truss, beam) are parametrized by a single natural
+    coordinate ξ ∈ [-1, 1] but exist in 2D or 3D physical space.
+    The element handles transformation from local 1D coordinates to
+    global spatial coordinates.
+
+    Attributes
+    ----------
+    node_coords : ndarray, shape (n_nodes, spatial_dim)
+        Nodal coordinates in global coordinate system.
+        For 2D: shape (n_nodes, 2)
+        For 3D: shape (n_nodes, 3)
+    n_nodes : int
+        Number of nodes in the element (typically 2 for linear elements).
+    n_dof : int
+        Total degrees of freedom (spatial_dim per node).
+    length : float
+        Element length in physical space.
+    """
+
+    def __init__(self, node_coords, validate=True):
+        """
+        Initialise 1D element.
+
+        Parameters
+        ----------
+        node_coords : ndarray, shape (n_nodes, spatial_dim)
+            Nodal coordinates in global system.
+        validate : bool, optional
+            If True, validate element geometry. Default is True.
+        """
+        self.node_coords = np.asarray(node_coords, dtype=float)
+
+        if self.node_coords.ndim != 2:
+            raise ValueError(
+                f"node_coords must be 2D array, got shape \
+                    {self.node_coords.shape}"
+            )
+
+        # Compute element length
+        self.length = self._compute_length()
+
+        if validate:
+            self._validate_geometry()
+
+    def _compute_length(self):
+        """
+        Compute element length in physical space.
+
+        Returns
+        -------
+        float
+            Element length.
+        """
+        if self.node_coords.shape[0] != 2:
+            raise NotImplementedError(
+                "Length calculation only implemented for 2-node elements"
+            )
+
+        delta = self.node_coords[1] - self.node_coords[0]
+        return np.linalg.norm(delta)
+
+    def _validate_geometry(self):
+        """
+        Validate element geometry.
+
+        Raises
+        ------
+        ValueError
+            If element has zero or negative length.
+        """
+        if self.length <= 0:
+            raise ValueError(
+                f"Element has non-positive length: {self.length:.6e}"
+            )
+
+    @abstractmethod
+    def shape_functions(self, xi):
+        """
+        Evaluate shape functions at natural coordinate ξ.
+
+        Parameters
+        ----------
+        xi : float
+            Natural coordinate ξ ∈ [-1, 1].
+
+        Returns
+        -------
+        N : ndarray, shape (n_nodes,)
+            Shape function values at ξ.
+        """
+        pass
+
+    @abstractmethod
+    def shape_function_derivatives(self, xi):
+        """
+        Evaluate derivatives of shape functions with respect to ξ.
+
+        Parameters
+        ----------
+        xi : float
+            Natural coordinate ξ.
+
+        Returns
+        -------
+        dN_dxi : ndarray, shape (n_nodes,)
+            Derivatives dN_i/dξ for i=1,...,n_nodes.
+        """
+        pass
+
+    @abstractmethod
+    def get_integration_points(self, order):
+        """
+        Return Gauss integration points and weights for 1D integration.
+
+        Parameters
+        ----------
+        order : str or int
+            Integration order specification.
+
+        Returns
+        -------
+        points : ndarray, shape (n_points,)
+            Integration point coordinates ξ in natural space.
+        weights : ndarray, shape (n_points,)
+            Integration weights corresponding to each point.
+        """
+        pass
+
+    def compute_jacobian_1d(self, xi):
+        """
+        Compute 1D Jacobian (dL/dξ) at natural coordinate ξ.
+
+        The Jacobian relates differential length in natural coordinates
+        to physical length: dL = J dξ
+
+        Parameters
+        ----------
+        xi : float
+            Natural coordinate ξ.
+
+        Returns
+        -------
+        J : float
+            Jacobian scalar dL/dξ.
+        """
+        dN_dxi = self.shape_function_derivatives(xi)
+
+        # For 1D element in nD space: J = ||dx/dξ||
+        # where dx/dξ = Σ (dN_i/dξ) * x_i
+        dx_dxi = np.zeros(self.node_coords.shape[1])
+
+        for i in range(self.node_coords.shape[0]):
+            dx_dxi += dN_dxi[i] * self.node_coords[i]
+
+        J = np.linalg.norm(dx_dxi)
+
+        if J <= 0:
+            raise ValueError(
+                f"Non-positive Jacobian: {J:.6e}. "
+                f"Element geometry is invalid."
+            )
+
+        return J
+
+
+class Element2D(ElementBase):
+    """
+    Abstract base class for 2D isoparametric continuum elements.
+
+    2D elements (Q4, Q8, T3) are parametrized by two natural coordinates
+    (ξ, η) and used for plane stress/strain analysis.
 
     Attributes
     ----------
@@ -41,8 +286,6 @@ class Element2D(ABC):
             Default is True.
         """
         self.node_coords = np.asarray(node_coords, dtype=float)
-        self.n_nodes = self.node_coords.shape[0]
-        self.n_dof = 2 * self.n_nodes
 
         # Validate input
         if self.node_coords.shape[1] != 2:
@@ -59,19 +302,6 @@ class Element2D(ABC):
                     "Invalid element geometry detected:\n"
                     + "\n".join(quality['warnings'])
                 )
-
-    @property
-    @abstractmethod
-    def element_type(self):
-        """
-        Return element type identifier (e.g., 'Q4', 'Q8', 'T3').
-
-        Returns
-        -------
-        str
-            Element type string.
-        """
-        pass
 
     @abstractmethod
     def shape_functions(self, xi, eta):
@@ -210,13 +440,10 @@ class Element2D(ABC):
         J_inv = np.linalg.inv(J)
 
         # Transform derivatives to global coordinates
-        # [dN/dx]   [dxi/dx   deta/dx ] [dN/dxi ]
-        # [dN/dy] = [dxi/dy   deta/dy ] [dN/deta]
         dN_dx = J_inv[0, 0] * dN_dxi + J_inv[0, 1] * dN_deta
         dN_dy = J_inv[1, 0] * dN_dxi + J_inv[1, 1] * dN_deta
 
         # Assemble B matrix
-        # For each node i: contributes to columns [2*i, 2*i+1]
         B = np.zeros((3, self.n_dof))
         for i in range(self.n_nodes):
             B[0, 2*i] = dN_dx[i]      # ε_xx = ∂u/∂x
