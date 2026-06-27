@@ -155,12 +155,12 @@ def main():
     # =================================================================
 
     # Geometry
-    L = 10.0  # Length [m]
-    h = 0.5  # Height [m]
-    t = 0.1  # Thickness [m]
+    L = 4.0  # Length [m]
+    h = 2.0  # Height [m]
+    t = 0.2  # Thickness [m]
 
     # Material properties
-    E = 210e9  # Young's modulus [Pa]
+    E = 100e9  # Young's modulus [Pa]
     nu = 0.3  # Poisson's ratio
 
     # Loading
