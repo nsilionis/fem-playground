@@ -10,8 +10,9 @@ from pathlib import Path
 import numpy as np
 
 from femlib.assembly import assemble_load_vector, assemble_stiffness
-from femlib.materials import LinearElastic2D, LinearElasticTruss
+from femlib.materials import LinearElastic1D, LinearElastic2D
 from femlib.mesh import create_rectangular_mesh
+from femlib.sections import PlaneSection, TrussSection
 from femlib.solvers import apply_dirichlet_bc, identify_boundary_nodes
 
 BASELINE_PATH = Path(__file__).parent / "data" / "baseline.npz"
@@ -20,10 +21,13 @@ BASELINE_PATH = Path(__file__).parent / "data" / "baseline.npz"
 def q4_stiffness():
     """Q4 global stiffness on a 4 x 2 mesh, full and reduced integration."""
     mesh = create_rectangular_mesh(4.0, 1.0, 4, 2)
-    material = LinearElastic2D(E=210e9, nu=0.3, thickness=0.01)
+    material = LinearElastic2D(E=210e9, nu=0.3)
+    section = PlaneSection(thickness=0.01)
     return {
-        "q4_K_full": assemble_stiffness(mesh, material, "full"),
-        "q4_K_reduced": assemble_stiffness(mesh, material, "reduced"),
+        "q4_K_full": assemble_stiffness(mesh, material, section, "full"),
+        "q4_K_reduced": assemble_stiffness(
+            mesh, material, section, "reduced"
+        ),
     }
 
 
@@ -34,8 +38,9 @@ def truss_stiffness():
         "elements": np.array([[0, 1], [1, 2], [2, 0]]),
         "element_type": "Truss",
     }
-    material = LinearElasticTruss(E=200e9, A=1e-3)
-    return {"truss_K": assemble_stiffness(mesh, material, "reduced")}
+    material = LinearElastic1D(E=200e9)
+    section = TrussSection(A=1e-3)
+    return {"truss_K": assemble_stiffness(mesh, material, section, "reduced")}
 
 
 def q4_cantilever_system():
@@ -45,8 +50,9 @@ def q4_cantilever_system():
     stiffness and load after boundary conditions.
     """
     mesh = create_rectangular_mesh(10.0, 1.0, 10, 1)
-    material = LinearElastic2D(E=210e9, nu=0.3, thickness=0.1)
-    K = assemble_stiffness(mesh, material, "full")
+    material = LinearElastic2D(E=210e9, nu=0.3)
+    section = PlaneSection(thickness=0.1)
+    K = assemble_stiffness(mesh, material, section, "full")
     loads = {
         "concentrated": [{"location": (10.0, 1.0), "force": [0.0, -1.0e3]}],
         "distributed": [{"edge": "top", "load_density": [0.0, -5.0e2]}],

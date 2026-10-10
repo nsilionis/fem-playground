@@ -5,7 +5,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from femlib.mesh import create_rectangular_mesh
-from femlib.materials import LinearElastic
+from femlib.materials import LinearElastic2D
+from femlib.sections import PlaneSection
 from femlib.assembly import assemble_stiffness, assemble_load_vector
 from femlib.solvers import (
     identify_boundary_nodes,
@@ -25,11 +26,11 @@ setup_plot_style()
 # Geometry
 L, h, t = 10.0, 0.5, 0.1
 mesh = create_rectangular_mesh(L, h, nx=10, ny=1)
-material = LinearElastic(E=210e9, nu=0.3, thickness=t,
-                         plane_type='stress')
+material = LinearElastic2D(E=210e9, nu=0.3, plane_type='stress')
+section = PlaneSection(thickness=t)
 
 # Solve
-K = assemble_stiffness(mesh, material, 'reduced')
+K = assemble_stiffness(mesh, material, section, 'reduced')
 # Point load at tip (find node at x=L, y=h/2)
 tip_node = np.argmin(
         (mesh["nodes"][:, 0] - L) ** 2

@@ -46,7 +46,7 @@ def get_element_dofs(element_nodes, dofs_per_node=2):
     return element_dofs
 
 
-def assemble_stiffness(mesh, material, integration_order='full'):
+def assemble_stiffness(mesh, material, section, integration_order='full'):
     """
     Assemble global stiffness matrix from element contributions.
 
@@ -66,8 +66,11 @@ def assemble_stiffness(mesh, material, integration_order='full'):
         - 'element_type': str, element type identifier (e.g., 'Q4', 'Truss')
           If not provided, defaults to 'Q4' for backward compatibility.
     material : Material
-        Material object (e.g., LinearElastic2D, LinearElasticTruss)
+        Material object (e.g., LinearElastic2D, LinearElastic1D)
         providing constitutive properties.
+    section : Section
+        Section object (e.g., PlaneSection, TrussSection) providing
+        cross-sectional properties.
     integration_order : str, optional
         Integration scheme: 'full' or 'reduced'. Default is 'full'.
 
@@ -80,21 +83,25 @@ def assemble_stiffness(mesh, material, integration_order='full'):
     --------
     >>> from femlib.mesh import create_rectangular_mesh
     >>> from femlib.materials import LinearElastic2D
+    >>> from femlib.sections import PlaneSection
     >>> mesh = create_rectangular_mesh(10.0, 1.0, 4, 2)
-    >>> material = LinearElastic2D(E=210e9, nu=0.3, thickness=0.1)
-    >>> K = assemble_stiffness(mesh, material, 'full')
+    >>> material = LinearElastic2D(E=210e9, nu=0.3)
+    >>> section = PlaneSection(thickness=0.1)
+    >>> K = assemble_stiffness(mesh, material, section, 'full')
     >>> K.shape
-    (78, 78)
+    (30, 30)
 
     >>> # Truss example
-    >>> from femlib.materials import LinearElasticTruss
+    >>> from femlib.materials import LinearElastic1D
+    >>> from femlib.sections import TrussSection
     >>> truss_mesh = {
     ...     'nodes': np.array([[0, 0], [1, 0], [0.5, 1]]),
     ...     'elements': np.array([[0, 1], [1, 2], [2, 0]]),
     ...     'element_type': 'Truss'
     ... }
-    >>> material = LinearElasticTruss(E=200e9, A=0.001)
-    >>> K = assemble_stiffness(truss_mesh, material, 'reduced')
+    >>> material = LinearElastic1D(E=200e9)
+    >>> section = TrussSection(A=0.001)
+    >>> K = assemble_stiffness(truss_mesh, material, section, 'reduced')
 
     Notes
     -----
@@ -151,6 +158,7 @@ def assemble_stiffness(mesh, material, integration_order='full'):
         # Compute element stiffness matrix
         K_e = element.compute_stiffness_matrix(
             material,
+            section,
             integration_order=integration_order
         )
 

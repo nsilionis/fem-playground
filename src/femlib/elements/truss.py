@@ -70,10 +70,10 @@ class Truss(Element1D):
     5.0
     >>> element.n_dof_local
     2
-    >>> K_local = element.compute_local_stiffness(material)
+    >>> K_local = element.compute_local_stiffness(material, section)
     >>> K_local.shape
     (2, 2)
-    >>> K_global = element.compute_stiffness_matrix(material)
+    >>> K_global = element.compute_stiffness_matrix(material, section)
     >>> K_global.shape
     (4, 4)
 
@@ -286,7 +286,8 @@ class Truss(Element1D):
 
         return B, J
 
-    def compute_local_stiffness(self, material, integration_order='reduced'):
+    def compute_local_stiffness(self, material, section,
+                                integration_order='reduced'):
         """
         Compute element stiffness matrix in local coordinates.
 
@@ -303,8 +304,10 @@ class Truss(Element1D):
 
         Parameters
         ----------
-        material : LinearElasticTruss
-            Material object providing E and A.
+        material : LinearElastic1D
+            Material object providing E.
+        section : TrussSection
+            Section object providing A.
         integration_order : str, optional
             Integration scheme: 'full' or 'reduced'.
             Default is 'reduced' (exact for linear truss).
@@ -325,11 +328,11 @@ class Truss(Element1D):
         """
         # Get material properties
         try:
-            EA = material.E * material.A
+            EA = material.E * section.A
         except AttributeError:
             raise TypeError(
-                "Material must have E and A attributes \
-                    (use LinearElasticTruss)"
+                "Material must have E (use LinearElastic1D) and section "
+                "must have A (use TrussSection)"
             )
 
         # Get integration points and weights
@@ -388,7 +391,8 @@ class Truss(Element1D):
 
         return T
 
-    def compute_stiffness_matrix(self, material, integration_order='reduced'):
+    def compute_stiffness_matrix(self, material, section,
+                                 integration_order='reduced'):
         """
         Compute element stiffness matrix in global coordinates.
 
@@ -402,8 +406,10 @@ class Truss(Element1D):
 
         Parameters
         ----------
-        material : LinearElasticTruss
-            Material object providing E and A.
+        material : LinearElastic1D
+            Material object providing E.
+        section : TrussSection
+            Section object providing A.
         integration_order : str, optional
             Integration scheme: 'full' or 'reduced'.
             Default is 'reduced'.
@@ -429,7 +435,9 @@ class Truss(Element1D):
         where c = cos(θ), s = sin(θ).
         """
         # Compute local stiffness matrix (2×2)
-        K_local = self.compute_local_stiffness(material, integration_order)
+        K_local = self.compute_local_stiffness(
+            material, section, integration_order
+        )
 
         # Get transformation matrix (2×4)
         T = self.get_transformation_matrix()

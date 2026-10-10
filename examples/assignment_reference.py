@@ -13,6 +13,7 @@ from tabulate import tabulate
 
 from femlib.mesh import create_rectangular_mesh
 from femlib.materials import LinearElastic2D
+from femlib.sections import PlaneSection
 from femlib.assembly import assemble_stiffness, assemble_load_vector
 from femlib.solvers import (
     identify_boundary_nodes,
@@ -124,12 +125,12 @@ def solve_cantilever(L, h, t, E, nu, P, nx, ny, integration_order):
     material = LinearElastic2D(
         E=E,
         nu=nu,
-        thickness=t,
         plane_type='stress'
     )
+    section = PlaneSection(thickness=t)
 
     # Assemble stiffness
-    K = assemble_stiffness(mesh, material, integration_order)
+    K = assemble_stiffness(mesh, material, section, integration_order)
 
     # Apply point load at tip (find node closest to (L, h/2))
     tip_node = np.argmin(
@@ -402,7 +403,6 @@ def main():
             f'{integration_name.capitalize()} Integration'
         )
         ax.legend(framealpha=0.95, loc='lower left')
-        ax.grid(True, alpha=0.3)
         ax.set_xlim(-0.2, L + 0.2)
 
         plt.tight_layout()
@@ -463,7 +463,6 @@ def main():
             f'{integration_name.capitalize()} Integration'
         )
         ax.legend(framealpha=0.95)
-        ax.grid(True, alpha=0.3)
         ax.set_xlim(-0.2, L + 0.2)
         ax.set_ylim(bottom=0)
 

@@ -12,10 +12,12 @@ from . import elements
 from . import materials
 from . import mesh
 from . import postprocess
+from . import sections
 
 __all__ = [
     'elements',
     'materials',
     'mesh',
     'postprocess',
+    'sections',
 ]

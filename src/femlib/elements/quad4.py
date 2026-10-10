@@ -181,6 +181,7 @@ class Q4Element(Element2D):
     def compute_stiffness_matrix(
         self,
         material,
+        section,
         integration_order='full'
     ):
         """
@@ -193,13 +194,14 @@ class Q4Element(Element2D):
             B: strain-displacement matrix
             D: constitutive matrix (from material)
             |J|: Jacobian determinant
-            t: thickness (from material)
+            t: thickness (from section)
 
         Parameters
         ----------
-        material : Material
-            Material object providing constitutive_matrix() and
-            thickness attribute.
+        material : LinearElastic2D
+            Material object providing constitutive_matrix().
+        section : PlaneSection
+            Section object providing the thickness.
         integration_order : str, optional
             Integration scheme: 'full' (2×2) or 'reduced' (1×1).
             Default is 'full'.
@@ -220,9 +222,9 @@ class Q4Element(Element2D):
         # Get integration points and weights
         points, weights = self.get_integration_points(integration_order)
 
-        # Get constitutive matrix and thickness from material
+        # Constitutive matrix from the material, thickness from the section
         D = material.constitutive_matrix()
-        t = material.thickness
+        t = section.thickness
 
         # Initialise element stiffness matrix
         K_e = np.zeros((self.n_dof, self.n_dof))

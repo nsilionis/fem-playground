@@ -2,7 +2,8 @@
 
 import numpy as np
 from femlib.mesh import create_rectangular_mesh
-from femlib.materials import LinearElastic
+from femlib.materials import LinearElastic2D
+from femlib.sections import PlaneSection
 from femlib.assembly import assemble_stiffness, assemble_load_vector
 from femlib.solvers import (
     identify_boundary_nodes,
@@ -14,10 +15,11 @@ from femlib.postprocess import compute_stress_strain_field
 # Quick cantilever setup
 L, h, t = 10.0, 0.1, 0.1
 mesh = create_rectangular_mesh(L, h, 20, 10)
-material = LinearElastic(E=210e9, nu=0.3, thickness=t)
+material = LinearElastic2D(E=210e9, nu=0.3)
+section = PlaneSection(thickness=t)
 
 # Solve (abbreviated)
-K = assemble_stiffness(mesh, material, 'full')
+K = assemble_stiffness(mesh, material, section, 'full')
 load_spec = {'distributed': [{'edge': 'top', 'load_density': [0.0, -1000.0]}]}
 F = assemble_load_vector(mesh, load_spec)
 

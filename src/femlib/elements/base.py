@@ -67,7 +67,7 @@ class ElementBase(ABC):
         pass
 
     @abstractmethod
-    def compute_stiffness_matrix(self, material, **kwargs):
+    def compute_stiffness_matrix(self, material, section, **kwargs):
         """
         Compute element stiffness matrix in global coordinates.
 
@@ -75,6 +75,8 @@ class ElementBase(ABC):
         ----------
         material : Material
             Material object providing constitutive properties.
+        section : Section
+            Section object providing cross-sectional properties.
         **kwargs
             Additional element-specific parameters.
 
@@ -454,7 +456,8 @@ class Element2D(ElementBase):
         return B, det_J
 
     @abstractmethod
-    def compute_stiffness_matrix(self, material, integration_order='full'):
+    def compute_stiffness_matrix(self, material, section,
+                                 integration_order='full'):
         """
         Compute element stiffness matrix.
 
@@ -464,7 +467,9 @@ class Element2D(ElementBase):
         Parameters
         ----------
         material : Material
-            Material object providing constitutive matrix and thickness.
+            Material object providing the constitutive matrix.
+        section : PlaneSection
+            Section object providing the thickness.
         integration_order : str, optional
             Integration scheme: 'full' or 'reduced'. Default is 'full'.
 

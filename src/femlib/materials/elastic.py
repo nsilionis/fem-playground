@@ -1,101 +1,52 @@
 """
-Linear elastic material models for 2D analysis.
+Linear elastic material models.
 
-This module provides constitutive models for linear elastic materials
-under plane stress and plane strain conditions.
+This module provides constitutive models for linear elastic materials:
+a uniaxial model for 1D elements, and plane stress and plane strain
+models for 2D continuum elements.
 """
 
 import numpy as np
 
-"""
-Linear elastic material model for truss elements.
 
-This module provides a material model for 1D truss (bar) elements
-requiring only Young's modulus and cross-sectional area.
-"""
-
-
-class LinearElasticTruss:
+class LinearElastic1D:
     """
-    Linear elastic material for truss elements.
+    Linear elastic material under uniaxial stress.
 
-    This material model is used for 1D bar/truss elements in 2D or 3D
-    space. Unlike plane stress/strain materials, it only requires
-    axial stiffness properties.
+    Used by 1D elements such as the truss. Cross-sectional properties
+    are supplied separately by a section object.
 
     Parameters
     ----------
     E : float
         Young's modulus [Pa].
-    A : float
-        Cross-sectional area [m²].
 
     Attributes
     ----------
     E : float
         Young's modulus.
-    A : float
-        Cross-sectional area.
-    axial_stiffness : float
-        Product EA, computed on initialization for efficiency.
+
+    Raises
+    ------
+    ValueError
+        If E is not positive.
 
     Examples
     --------
-    >>> steel_truss = LinearElasticTruss(E=200e9, A=0.001)
-    >>> steel_truss.axial_stiffness
-    2e8
-
-    Notes
-    -----
-    This material model does not provide a constitutive matrix (D)
-    since truss elements use direct axial stiffness formulation rather
-    than strain-displacement-stress relationships.
+    >>> steel = LinearElastic1D(E=200e9)
     """
 
-    def __init__(self, E, A):
-        """
-        Initialise linear elastic truss material.
-
-        Parameters
-        ----------
-        E : float
-            Young's modulus [Pa]. Must be positive.
-        A : float
-            Cross-sectional area [m²]. Must be positive.
-
-        Raises
-        ------
-        ValueError
-            If E or A is non-positive.
-        """
+    def __init__(self, E):
+        """Initialise uniaxial linear elastic material."""
         if E <= 0:
             raise ValueError(
                 f"Young's modulus must be positive, got E={E}"
             )
-        if A <= 0:
-            raise ValueError(
-                f"Cross-sectional area must be positive, got A={A}"
-            )
-
         self.E = float(E)
-        self.A = float(A)
-        self.axial_stiffness = self.E * self.A
 
     def __repr__(self):
         """String representation of material."""
-        return (
-            f"LinearElasticTruss(E={self.E:.3e} Pa, "
-            f"A={self.A:.6f} m²)"
-        )
-
-    def __str__(self):
-        """Human-readable description."""
-        return (
-            f"Linear Elastic Truss Material:\n"
-            f"  Young's modulus: {self.E/1e9:.1f} GPa\n"
-            f"  Cross-section:   {self.A*1e4:.2f} cm²\n"
-            f"  Axial stiffness: {self.axial_stiffness:.3e} N"
-        )
+        return f"LinearElastic1D(E={self.E:.3e} Pa)"
 
 
 class LinearElastic2D:
@@ -103,7 +54,8 @@ class LinearElastic2D:
     Linear elastic material for 2D analysis.
 
     Supports both plane stress and plane strain formulations with
-    isotropic material properties.
+    isotropic material properties. The out-of-plane thickness is
+    supplied separately by a PlaneSection.
 
     Parameters
     ----------
@@ -111,8 +63,6 @@ class LinearElastic2D:
         Young's modulus (Pa or consistent units).
     nu : float
         Poisson's ratio (dimensionless, typically 0.0 to 0.5).
-    thickness : float
-        Thickness in the out-of-plane direction (m or consistent units).
     plane_type : str, optional
         Analysis type: 'stress' or 'strain'. Default is 'stress'.
 
@@ -122,8 +72,6 @@ class LinearElastic2D:
         Young's modulus.
     nu : float
         Poisson's ratio.
-    thickness : float
-        Material thickness.
     plane_type : str
         Plane stress or plane strain formulation.
 
@@ -135,13 +83,13 @@ class LinearElastic2D:
 
     Examples
     --------
-    >>> steel = LinearElastic2D(E=210e9, nu=0.3, thickness=0.01)
+    >>> steel = LinearElastic2D(E=210e9, nu=0.3)
     >>> D = steel.constitutive_matrix()
     >>> D.shape
     (3, 3)
     """
 
-    def __init__(self, E, nu, thickness, plane_type='stress'):
+    def __init__(self, E, nu, plane_type='stress'):
         """Initialise linear elastic material."""
         # Validate material properties
         if E <= 0:
@@ -152,10 +100,6 @@ class LinearElastic2D:
             raise ValueError(
                 f"Poisson's ratio must be in [0, 0.5), got nu={nu}"
             )
-        if thickness <= 0:
-            raise ValueError(
-                f"Thickness must be positive, got thickness={thickness}"
-            )
         if plane_type not in ['stress', 'strain']:
             raise ValueError(
                 f"plane_type must be 'stress' or 'strain', "
@@ -164,7 +108,6 @@ class LinearElastic2D:
 
         self.E = float(E)
         self.nu = float(nu)
-        self.thickness = float(thickness)
         self.plane_type = plane_type
 
     def constitutive_matrix(self):
@@ -214,7 +157,6 @@ class LinearElastic2D:
     def __repr__(self):
         """String representation of material."""
         return (
-            f"LinearElastic(E={self.E:.3e}, nu={self.nu:.3f}, "
-            f"thickness={self.thickness:.3e}, "
+            f"LinearElastic2D(E={self.E:.3e}, nu={self.nu:.3f}, "
             f"plane_type='{self.plane_type}')"
         )

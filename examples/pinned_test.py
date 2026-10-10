@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 
 from femlib.mesh import create_rectangular_mesh
 from femlib.materials import LinearElastic2D
+from femlib.sections import PlaneSection
 from femlib.assembly import assemble_stiffness, assemble_load_vector
 from femlib.solvers import apply_dirichlet_bc, solve_system
 from femlib.postprocess import (
@@ -44,11 +45,12 @@ node_bot_mid = nx // 2     # (x=2,   y=0)  — midspan
 
 # ── Material ───────────────────────────────────────────────────────────────
 setup_plot_style()
-material = LinearElastic2D(E=E, nu=nu, thickness=t, plane_type='stress')
+material = LinearElastic2D(E=E, nu=nu, plane_type='stress')
+section = PlaneSection(thickness=t)
 
 # ── Global stiffness ───────────────────────────────────────────────────────
 print("Assembling stiffness matrix ...")
-K = assemble_stiffness(mesh, material, integration_order='full')
+K = assemble_stiffness(mesh, material, section, integration_order='full')
 
 # ── Load vector ────────────────────────────────────────────────────────────
 load_spec = {

@@ -11,7 +11,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from femlib.mesh import create_rectangular_mesh
-from femlib.materials import LinearElastic
+from femlib.materials import LinearElastic2D
+from femlib.sections import PlaneSection
 from femlib.assembly import assemble_stiffness, assemble_load_vector
 from femlib.solvers import (
     identify_boundary_nodes,
@@ -214,13 +215,14 @@ def main():
     print(f"    Nodes: {n_nodes}, DOFs: {n_dofs}")
 
     # Define material
-    material = LinearElastic(
-        E=E, nu=nu, thickness=t, plane_type="stress"
-    )
+    material = LinearElastic2D(E=E, nu=nu, plane_type="stress")
+    section = PlaneSection(thickness=t)
 
     # Assemble stiffness matrix
     print("  Assembling stiffness matrix...")
-    K = assemble_stiffness(mesh, material, integration_order="reduced")
+    K = assemble_stiffness(
+        mesh, material, section, integration_order="reduced"
+    )
     print(f"    K shape: {K.shape}")
 
     # Assemble load vector
@@ -345,7 +347,6 @@ def main():
     ax.set_xlabel(r"$x \ \mathrm{[m]}$")
     ax.set_ylabel(r"$v \ \mathrm{[mm]}$")
     ax.legend(framealpha=0.95, loc="lower left")
-    ax.grid(True, alpha=0.3)
     ax.set_xlim(-0.2, L + 0.2)
 
     plt.tight_layout()
@@ -370,7 +371,6 @@ def main():
 
     ax.set_xlabel(r"$x \ \mathrm{[m]}$")
     ax.set_ylabel(r"Relative error [\%]")
-    ax.grid(True, alpha=0.3)
     ax.set_xlim(-0.2, L + 0.2)
     ax.set_ylim(bottom=0)
 

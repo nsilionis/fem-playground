@@ -21,14 +21,16 @@ pip install -e .
 ## Quick Start
 ```python
 from femlib.mesh import create_rectangular_mesh
-from femlib.materials import LinearElastic
+from femlib.materials import LinearElastic2D
+from femlib.sections import PlaneSection
 from femlib.elements import Q4Element
 
 # Create mesh
 mesh = create_rectangular_mesh(Lx=10.0, Ly=1.0, nx=8, ny=2)
 
-# Define material
-steel = LinearElastic(E=210e9, nu=0.3, thickness=0.01)
+# Define material and section
+steel = LinearElastic2D(E=210e9, nu=0.3)
+plate = PlaneSection(thickness=0.01)
 
 # Analysis continues...
 ```
