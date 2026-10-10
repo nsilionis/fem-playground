@@ -14,8 +14,8 @@ def setup_plot_style():
     """
     Configure matplotlib with preferred styling.
 
-    Applies custom font settings using Libertinus fonts with LaTeX
-    rendering and siunitx for proper unit formatting.
+    Applies LaTeX rendering with Libertinus Sans text, Times-flavoured
+    newtxmath mathematics, and siunitx for unit formatting.
 
     Call this function at the start of any script that creates plots
     to ensure consistent styling across all figures.
@@ -30,13 +30,18 @@ def setup_plot_style():
     rcParams.update({
         # LaTeX rendering
         "text.usetex": True,
-        "font.family": "serif",
+        "font.family": "sans-serif",
         "axes.unicode_minus": False,
 
-        # LaTeX preamble with Libertinus fonts and siunitx
+        # LaTeX preamble: Libertinus Sans text, newtxmath maths, siunitx.
+        # amsmath must precede newtxmath.
         "text.latex.preamble": r"""
+            \usepackage[T1]{fontenc}
+            \usepackage{amsmath,amssymb}
             \usepackage{libertinus}
-            \usepackage{libertinust1math}
+            \renewcommand{\sfdefault}{LibertinusSans-TLF}
+            \renewcommand{\familydefault}{\sfdefault}
+            \usepackage[vvarbb]{newtxmath}
             \usepackage{siunitx}
             \sisetup{
                 detect-all,
@@ -56,7 +61,7 @@ def setup_plot_style():
         "axes.linewidth": 1.0,
         "axes.labelsize": 11,
         "axes.titlesize": 12,
-        "axes.grid": True,
+        "axes.grid": False,
 
         # Grid settings
         "grid.alpha": 0.3,
