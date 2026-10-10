@@ -13,23 +13,25 @@ class LinearElastic1D:
     """
     Linear elastic material under uniaxial stress.
 
-    Used by 1D elements such as the truss. Cross-sectional properties
-    are supplied separately by a section object.
+    Used by 1D elements, the truss and the beam. Cross-sectional
+    properties are supplied separately by a section object.
 
     Parameters
     ----------
-    E : float
-        Young's modulus [Pa].
+    E : float or callable
+        Young's modulus [Pa]. A function must accept a numpy.ndarray of
+        positions x and return an array of the same shape. The truss
+        element requires a float.
 
     Attributes
     ----------
-    E : float
+    E : float or callable
         Young's modulus.
 
     Raises
     ------
     ValueError
-        If E is not positive.
+        If a constant E is not positive.
 
     Examples
     --------
@@ -38,14 +40,16 @@ class LinearElastic1D:
 
     def __init__(self, E):
         """Initialise uniaxial linear elastic material."""
-        if E <= 0:
+        if not callable(E) and E <= 0:
             raise ValueError(
                 f"Young's modulus must be positive, got E={E}"
             )
-        self.E = float(E)
+        self.E = E if callable(E) else float(E)
 
     def __repr__(self):
         """String representation of material."""
+        if callable(self.E):
+            return f"LinearElastic1D(E={self.E!r})"
         return f"LinearElastic1D(E={self.E:.3e} Pa)"
 
 

@@ -305,7 +305,7 @@ class Truss(Element1D):
         Parameters
         ----------
         material : LinearElastic1D
-            Material object providing E.
+            Material object providing E, as a float.
         section : TrussSection
             Section object providing A.
         integration_order : str, optional
@@ -407,7 +407,7 @@ class Truss(Element1D):
         Parameters
         ----------
         material : LinearElastic1D
-            Material object providing E.
+            Material object providing E, as a float.
         section : TrussSection
             Section object providing A.
         integration_order : str, optional
