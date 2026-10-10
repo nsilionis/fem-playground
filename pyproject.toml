@@ -30,6 +30,9 @@ dev = [
     "flake8>=3.9",
     "black>=21.0",
 ]
+examples = [
+    "tabulate>=0.9",
+]
 
 [tool.setuptools.packages.find]
 where = ["src"]
