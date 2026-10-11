@@ -47,10 +47,17 @@ tests/               # Unit tests
 - Python ≥ 3.8
 - NumPy ≥ 1.20
 - Matplotlib ≥ 3.3
+- SciPy ≥ 1.10
 
 ## Development
 
-Install with development dependencies:
+Install the library with its development tools and the packages the
+examples need:
 ```bash
-pip install -e ".[dev]"
+uv sync
+```
+
+With pip (version 25.1 or later):
+```bash
+pip install -e . --group dev --group examples
 ```
