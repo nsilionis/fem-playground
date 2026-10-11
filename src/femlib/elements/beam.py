@@ -222,3 +222,49 @@ class Beam(Element1D):
             B, _ = self.compute_B_matrix(xi)
             K_e += w * ei * (B.T @ B) * J
         return K_e
+
+    def compute_mass_matrix(self, material, section,
+                            integration_order='full'):
+        """Consistent element mass matrix by Gauss quadrature.
+
+            M_e = sum_g w_g rhoA(x_g) N_g^T N_g J
+
+        Parameters
+        ----------
+        material : LinearElastic1D
+            Supplies rho, as a float or a function of x.
+        section : BeamSection
+            Supplies A, as a float or a function of x.
+        integration_order : str or int, optional
+            See get_integration_points. Default is 'full', which is
+            exact for rho * A up to linear in x.
+
+        Returns
+        -------
+        numpy.ndarray, shape (4, 4)
+            Element mass matrix.
+
+        Raises
+        ------
+        ValueError
+            If material.rho or section.A is not set, or rho * A is not
+            positive at every Gauss point.
+        """
+        if material.rho is None:
+            raise ValueError("Mass matrix needs a density: material.rho "
+                             "is not set")
+        if section.A is None:
+            raise ValueError("Mass matrix needs an area: section.A "
+                             "is not set")
+        points, weights = self.get_integration_points(integration_order)
+        J = self.length / 2.0
+        x = self.node_coords[0, 0] + (1.0 + points) * J
+        rhoA = _at(material.rho, x) * _at(section.A, x)
+        if np.any(rhoA <= 0):
+            raise ValueError("rho * A must be positive at every Gauss point")
+
+        M_e = np.zeros((4, 4))
+        for xi, w, ra in zip(points, weights, rhoA):
+            N = self.shape_functions(xi)
+            M_e += w * ra * np.outer(N, N) * J
+        return M_e

@@ -22,35 +22,46 @@ class LinearElastic1D:
         Young's modulus [Pa]. A function must accept a numpy.ndarray of
         positions x and return an array of the same shape. The truss
         element requires a float.
+    rho : float or callable, optional
+        Density [kg/m^3], in the same forms as E. Needed only for mass
+        matrices. Default is None.
 
     Attributes
     ----------
     E : float or callable
         Young's modulus.
+    rho : float, callable or None
+        Density.
 
     Raises
     ------
     ValueError
-        If a constant E is not positive.
+        If a constant E or rho is not positive.
 
     Examples
     --------
-    >>> steel = LinearElastic1D(E=200e9)
+    >>> steel = LinearElastic1D(E=200e9, rho=7850.0)
     """
 
-    def __init__(self, E):
+    def __init__(self, E, rho=None):
         """Initialise uniaxial linear elastic material."""
         if not callable(E) and E <= 0:
             raise ValueError(
                 f"Young's modulus must be positive, got E={E}"
             )
+        if rho is not None and not callable(rho) and rho <= 0:
+            raise ValueError(
+                f"Density must be positive, got rho={rho}"
+            )
         self.E = E if callable(E) else float(E)
+        if rho is None or callable(rho):
+            self.rho = rho
+        else:
+            self.rho = float(rho)
 
     def __repr__(self):
         """String representation of material."""
-        if callable(self.E):
-            return f"LinearElastic1D(E={self.E!r})"
-        return f"LinearElastic1D(E={self.E:.3e} Pa)"
+        return f"LinearElastic1D(E={self.E!r}, rho={self.rho!r})"
 
 
 class LinearElastic2D:

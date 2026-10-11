@@ -73,7 +73,7 @@ class TrussSection:
 
 class BeamSection:
     """
-    Second moment of area of a beam cross-section.
+    Second moment of area and area of a beam cross-section.
 
     Parameters
     ----------
@@ -81,27 +81,36 @@ class BeamSection:
         Second moment of area about the bending axis [m^4]. A function
         must accept a numpy.ndarray of positions x and return an array
         of the same shape.
+    A : float or callable, optional
+        Cross-sectional area [m^2], in the same forms as I. Needed only
+        for mass matrices. Default is None.
 
     Raises
     ------
     ValueError
-        If a constant I is not positive.
+        If a constant I or A is not positive.
 
     Examples
     --------
-    >>> section = BeamSection(I=8.0e-6)
+    >>> section = BeamSection(I=8.0e-6, A=0.01)
     """
 
-    def __init__(self, I):  # noqa: E741
+    def __init__(self, I, A=None):  # noqa: E741
         """Initialise beam section."""
         if not callable(I) and I <= 0:
             raise ValueError(
                 f"Second moment of area must be positive, got I={I}"
             )
+        if A is not None and not callable(A) and A <= 0:
+            raise ValueError(
+                f"Cross-sectional area must be positive, got A={A}"
+            )
         self.I = I if callable(I) else float(I)  # noqa: E741
+        if A is None or callable(A):
+            self.A = A
+        else:
+            self.A = float(A)
 
     def __repr__(self):
         """String representation of section."""
-        if callable(self.I):
-            return f"BeamSection(I={self.I!r})"
-        return f"BeamSection(I={self.I:.3e} m^4)"
+        return f"BeamSection(I={self.I!r}, A={self.A!r})"
