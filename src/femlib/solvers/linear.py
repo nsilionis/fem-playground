@@ -6,6 +6,7 @@ from FEM discretisation.
 """
 
 import numpy as np
+import scipy.linalg
 
 
 def solve_system(K, F, constrained_dofs=None, prescribed_values=None):
@@ -19,7 +20,8 @@ def solve_system(K, F, constrained_dofs=None, prescribed_values=None):
     Parameters
     ----------
     K : ndarray, shape (n_free_dofs, n_free_dofs)
-        Stiffness matrix (possibly reduced after BC application).
+        Stiffness matrix (possibly reduced after BC application). Must
+        be symmetric positive definite.
     F : ndarray, shape (n_free_dofs,)
         Force vector (possibly reduced after BC application).
     constrained_dofs : ndarray, optional
@@ -32,24 +34,30 @@ def solve_system(K, F, constrained_dofs=None, prescribed_values=None):
     u : ndarray, shape (n_total_dofs,)
         Displacement vector (full size, including constrained DOFs).
 
+    Raises
+    ------
+    numpy.linalg.LinAlgError
+        If K is not positive definite, which happens when the boundary
+        conditions do not prevent rigid-body motion.
+
     Examples
     --------
     >>> u = solve_system(K_reduced, F_reduced, c_dofs, c_vals)
 
     Notes
     -----
-    Uses numpy.linalg.solve which employs LU decomposition.
-    For large sparse systems, consider iterative solvers.
+    Solves by Cholesky factorisation, through scipy.linalg.solve with
+    assume_a='pos'. A scipy.linalg.LinAlgWarning is issued when K is
+    ill-conditioned and the solution may be inaccurate.
     """
-    # Check for singular system
-    if np.abs(np.linalg.det(K)) < 1e-12:
+    # Cholesky factorisation: fails if K is not positive definite
+    try:
+        u_free = scipy.linalg.solve(K, F, assume_a='pos')
+    except np.linalg.LinAlgError as err:
         raise np.linalg.LinAlgError(
-            "Stiffness matrix is singular or nearly singular. "
+            "Stiffness matrix is not positive definite. "
             "Check boundary conditions - system may be unconstrained."
-        )
-
-    # Solve reduced system
-    u_free = np.linalg.solve(K, F)
+        ) from err
 
     # If no constrained DOFs, return directly
     if constrained_dofs is None or len(constrained_dofs) == 0:
