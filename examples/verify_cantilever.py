@@ -169,8 +169,8 @@ def main():
     q = -1000.0  # Distributed load [N/m] (negative = downward)
 
     # Mesh density
-    nx = 100  # Elements along length
-    ny = 100  # Elements along height
+    nx = 20  # Elements along length
+    ny = 10  # Elements along height
 
     print("\nProblem Parameters:")
     print(f"  Geometry: L={L:.1f} m, h={h:.1f} m, t={t:.3f} m")
@@ -221,7 +221,7 @@ def main():
     # Assemble stiffness matrix
     print("  Assembling stiffness matrix...")
     K = assemble_stiffness(
-        mesh, material, section, integration_order="reduced"
+        mesh, material, section, integration_order="full"
     )
     print(f"    K shape: {K.shape}")
 
@@ -350,7 +350,7 @@ def main():
     ax.set_xlim(-0.2, L + 0.2)
 
     plt.tight_layout()
-    filename = "tip_deflection_100x100_reduced.png"
+    filename = "tip_deflection_20x10_full.png"
     output_path = output_dir / filename
     plt.savefig(output_path, dpi=300, bbox_inches="tight")
     print(f"  Saved: {output_path}")
@@ -375,7 +375,7 @@ def main():
     ax.set_ylim(bottom=0)
 
     plt.tight_layout()
-    fname = "verification_error_100x100_reduced.png"
+    fname = "verification_error_20x10_full.png"
     output_path = output_dir / fname
     plt.savefig(output_path, bbox_inches="tight")
     print(f"  Saved: {output_path}")
