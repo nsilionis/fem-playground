@@ -250,7 +250,7 @@ def main():
     fixed_nodes = identify_boundary_nodes(mesh, "left")
     print(f"    Fixed nodes: {len(fixed_nodes)}")
 
-    bc = {"nodes": fixed_nodes, "dofs": ["both"], "values": [0.0]}
+    bc = {"nodes": fixed_nodes, "dofs": ["all"], "values": [0.0]}
 
     K_bc, F_bc, c_dofs, c_vals = apply_dirichlet_bc(K, F, bc)
     print(f"    Reduced system: {K_bc.shape[0]} DOFs")

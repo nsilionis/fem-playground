@@ -1,8 +1,8 @@
 """
-Structured mesh generation for rectangular domains.
+Structured mesh generation.
 
 This module provides utilities for generating structured quadrilateral
-meshes suitable for Q4 finite element analysis.
+meshes for Q4 analysis and uniform meshes of beam elements.
 """
 
 import numpy as np
@@ -148,6 +148,51 @@ def create_rectangular_mesh(Lx, Ly, nx, ny):
     }
 
     return mesh
+
+
+def create_beam_mesh(L, n_elements, x0=0.0):
+    """
+    Uniform mesh of two-node beam elements along the x-axis.
+
+    Parameters
+    ----------
+    L : float
+        Beam length [m].
+    n_elements : int
+        Number of elements, at least 1.
+    x0 : float, optional
+        Position of the left end [m]. Default is 0.0.
+
+    Returns
+    -------
+    dict
+        'nodes' of shape (n_elements + 1, 1), 'elements' of shape
+        (n_elements, 2), 'element_type' 'Beam', and 'boundary_nodes'
+        with 'left' and 'right'.
+
+    Raises
+    ------
+    ValueError
+        If L is not positive or n_elements is less than 1.
+
+    Examples
+    --------
+    >>> mesh = create_beam_mesh(2.0, 10)
+    >>> mesh['nodes'].shape
+    (11, 1)
+    """
+    if L <= 0:
+        raise ValueError(f"Length must be positive, got L={L}")
+    if n_elements < 1:
+        raise ValueError(f"n_elements must be at least 1, got {n_elements}")
+    n = int(n_elements)
+    x = x0 + L * np.arange(n + 1) / n
+    return {
+        'nodes': x.reshape(-1, 1),
+        'elements': np.column_stack([np.arange(n), np.arange(1, n + 1)]),
+        'element_type': 'Beam',
+        'boundary_nodes': {'left': np.array([0]), 'right': np.array([n])},
+    }
 
 
 def mesh_statistics(mesh):

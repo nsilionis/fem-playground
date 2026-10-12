@@ -86,6 +86,8 @@ class Truss(Element1D):
     integration is performed over ξ ∈ [-1, 1] using Gauss quadrature.
     """
 
+    dof_names = ('ux', 'uy')
+
     def __init__(self, node_coords, validate=True):
         """Initialise truss element with nodal coordinates."""
         node_coords = np.asarray(node_coords, dtype=float)

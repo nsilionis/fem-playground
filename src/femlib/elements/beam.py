@@ -37,6 +37,8 @@ class Beam(Element1D):
         nodes have different y.
     """
 
+    dof_names = ('w', 'theta')
+
     def __init__(self, node_coords, validate=True):
         node_coords = np.asarray(node_coords, dtype=float)
         if node_coords.shape not in ((2, 1), (2, 2)):

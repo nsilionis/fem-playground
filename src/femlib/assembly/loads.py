@@ -251,7 +251,7 @@ def compute_edge_load_vector(element, local_edge_nodes,
     return f_e
 
 
-def assemble_load_vector(mesh, load_specification):
+def assemble_load_vector(mesh, load_specification, dof_names=('ux', 'uy')):
     """
     Assemble global load vector from geometric load specification.
 
@@ -269,7 +269,8 @@ def assemble_load_vector(mesh, load_specification):
             'concentrated': [
                 {
                     'location': (x, y) or {'x': val, 'y': val},
-                    'force': [Fx, Fy]
+                    'force': one value per DOF, in the order of
+                             dof_names, e.g. [Fx, Fy] or [P, M]
                 },
                 ...
             ],
@@ -282,10 +283,21 @@ def assemble_load_vector(mesh, load_specification):
             ]
         }
 
+        Distributed edge loads are available for Q4 meshes only.
+    dof_names : tuple of str, optional
+        DOF names per node, as declared by the element class (e.g.
+        Beam.dof_names). Default is ('ux', 'uy').
+
     Returns
     -------
     F_global : ndarray, shape (n_dofs,)
         Global load vector.
+
+    Raises
+    ------
+    ValueError
+        If a force does not list one value per DOF, no node matches a
+        location, or a distributed load is given for a non-plane mesh.
 
     Examples
     --------
@@ -307,8 +319,14 @@ def assemble_load_vector(mesh, load_specification):
     """
     nodes = mesh['nodes']
     elements = mesh['elements']
-    n_nodes = nodes.shape[0]
-    n_dofs = 2 * n_nodes
+    n_per_node = len(dof_names)
+    n_dofs = n_per_node * nodes.shape[0]
+
+    if load_specification.get('distributed') and \
+            tuple(dof_names) != ('ux', 'uy'):
+        raise ValueError(
+            "Distributed edge loads are available for Q4 meshes only"
+        )
 
     F_global = np.zeros(n_dofs)
 
@@ -316,11 +334,12 @@ def assemble_load_vector(mesh, load_specification):
     if 'concentrated' in load_specification:
         for load_spec in load_specification['concentrated']:
             location = load_spec['location']
-            force = np.asarray(load_spec['force'])
+            force = np.asarray(load_spec['force'], dtype=float)
 
-            if force.shape[0] != 2:
+            if force.shape != (n_per_node,):
                 raise ValueError(
-                    f"Force must be 2D [Fx, Fy], got {force}"
+                    f"Force must list one value per DOF {dof_names}, "
+                    f"got {load_spec['force']}"
                 )
 
             # Find node at or nearest to location
@@ -339,9 +358,9 @@ def assemble_load_vector(mesh, load_specification):
                 # Point specification like (10.0, 0.5)
                 node_id = find_nearest_node(mesh, location)
 
-            # Apply force to node DOFs
-            F_global[2*node_id] += force[0]
-            F_global[2*node_id + 1] += force[1]
+            # Apply force to node DOFs, in the order of dof_names
+            for k in range(n_per_node):
+                F_global[n_per_node * node_id + k] += force[k]
 
     # Process distributed edge loads
     if 'distributed' in load_specification:

@@ -45,7 +45,7 @@ load_spec = {
 F = assemble_load_vector(mesh, load_spec)
 
 fixed_nodes = identify_boundary_nodes(mesh, 'left')
-bc = {'nodes': fixed_nodes, 'dofs': ['both'], 'values': [0.0]}
+bc = {'nodes': fixed_nodes, 'dofs': ['all'], 'values': [0.0]}
 K_bc, F_bc, c_dofs, c_vals = apply_dirichlet_bc(K, F, bc)
 u = solve_system(K_bc, F_bc, c_dofs, c_vals)
 

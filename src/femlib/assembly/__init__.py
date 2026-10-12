@@ -7,6 +7,7 @@ specification.
 """
 
 from .assembler import (
+    assemble_mass,
     assemble_stiffness,
     get_element_dofs
 )
@@ -17,6 +18,7 @@ from .loads import (
 )
 
 __all__ = [
+    'assemble_mass',
     'assemble_stiffness',
     'get_element_dofs',
     'assemble_load_vector',

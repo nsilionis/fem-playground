@@ -4,6 +4,7 @@ import warnings
 
 import numpy as np
 import pytest
+import scipy.sparse as sp
 from scipy.linalg import LinAlgWarning
 
 from femlib.assembly import assemble_load_vector, assemble_stiffness
@@ -32,7 +33,7 @@ def cantilever(nx, ny, clamp=True):
         return K, F
     bc = {
         "nodes": identify_boundary_nodes(mesh, "left"),
-        "dofs": ["both"],
+        "dofs": ["all"],
         "values": [0.0],
     }
     K_bc, F_bc, _, _ = apply_dirichlet_bc(K, F, bc)
@@ -55,3 +56,38 @@ def test_unconstrained_system_is_not_solved_silently():
         warnings.simplefilter("error", LinAlgWarning)
         with pytest.raises((np.linalg.LinAlgError, LinAlgWarning)):
             solve_system(K, F)
+
+
+def test_sparse_large_system_solves_without_warnings_to_rounding():
+    K, F = cantilever(40, 20)
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        u = solve_system(sp.csr_array(K), F)
+    residual = np.linalg.norm(K @ u - F)
+    assert residual <= RTOL * np.linalg.norm(K, 2) * np.linalg.norm(u)
+
+
+def test_sparse_unconstrained_system_is_not_solved_silently():
+    K, F = cantilever(4, 2, clamp=False)
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", LinAlgWarning)
+        with pytest.raises((np.linalg.LinAlgError, LinAlgWarning)):
+            solve_system(sp.csr_array(K), F)
+
+
+def test_sparse_negative_pivot_is_located():
+    K = sp.csr_array(np.diag([1.0, 2.0, 3.0, -4.0]))
+    with pytest.raises(np.linalg.LinAlgError,
+                       match=r"1 non-positive pivot\(s\), at node 1, theta"):
+        solve_system(K, np.ones(4), dof_names=("w", "theta"))
+
+
+def test_sparse_ratio_warning_follows_max_ratio():
+    d = 1e-8
+    K = sp.csr_array(np.array([[1.0, 1.0 - d], [1.0 - d, 1.0]]))
+    F = np.array([1.0, 0.0])
+    with pytest.warns(LinAlgWarning):
+        solve_system(K, F, max_ratio=1e7)
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        solve_system(K, F)

@@ -150,7 +150,7 @@ def solve_cantilever(L, h, t, E, nu, P, nx, ny, integration_order):
     fixed_nodes = identify_boundary_nodes(mesh, 'left')
     bc = {
         'nodes': fixed_nodes,
-        'dofs': ['both'],
+        'dofs': ['all'],
         'values': [0.0]
     }
 

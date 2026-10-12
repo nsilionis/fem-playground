@@ -1,11 +1,13 @@
 """
 Assembly routines for global finite element matrices.
 
-This module provides functions for assembling global stiffness matrices
-and load vectors from element-level contributions.
+This module provides functions for assembling global stiffness and
+mass matrices from element-level contributions, as dense arrays or as
+sparse matrices.
 """
 
 import numpy as np
+import scipy.sparse as sp
 
 
 def get_element_dofs(element_nodes, dofs_per_node=2):
@@ -46,38 +48,102 @@ def get_element_dofs(element_nodes, dofs_per_node=2):
     return element_dofs
 
 
-def assemble_stiffness(mesh, material, section, integration_order='full'):
+def _element_class(mesh):
+    """Element class named by mesh['element_type'] (default 'Q4')."""
+    # Lazy import to avoid circular dependencies
+    from ..elements import Beam, Q4Element, Truss
+
+    element_types = {'Q4': Q4Element, 'Truss': Truss, 'Beam': Beam}
+    name = mesh.get('element_type', 'Q4')
+    if name not in element_types:
+        raise ValueError(
+            f"Unknown element type '{name}'. "
+            f"Available types: {', '.join(element_types)}"
+        )
+    return element_types[name]
+
+
+def _assemble(mesh, material, section, method, integration_order, sparse):
+    """Assemble the global matrix given by an element method."""
+    ElementClass = _element_class(mesh)
+    if not hasattr(ElementClass, method):
+        raise ValueError(
+            f"Element type '{mesh.get('element_type', 'Q4')}' does not "
+            f"provide {method}"
+        )
+    nodes = mesh['nodes']
+    elements = mesh['elements']
+    dofs_per_node = len(ElementClass.dof_names)
+    n_dofs = dofs_per_node * nodes.shape[0]
+
+    if sparse:
+        rows, cols, values = [], [], []
+    else:
+        A_global = np.zeros((n_dofs, n_dofs))
+
+    for elem_nodes in elements:
+        element = ElementClass(nodes[elem_nodes])
+        A_e = getattr(element, method)(
+            material, section, integration_order=integration_order
+        )
+        elem_dofs = get_element_dofs(elem_nodes, dofs_per_node)
+
+        if sparse:
+            n_e = len(elem_dofs)
+            rows.append(np.repeat(elem_dofs, n_e))
+            cols.append(np.tile(elem_dofs, n_e))
+            values.append(A_e.ravel())
+        else:
+            for i, dof_i in enumerate(elem_dofs):
+                for j, dof_j in enumerate(elem_dofs):
+                    A_global[dof_i, dof_j] += A_e[i, j]
+
+    if sparse:
+        # Entries at repeated positions are summed by the conversion
+        triplets = (np.concatenate(values),
+                    (np.concatenate(rows), np.concatenate(cols)))
+        return sp.coo_array(triplets, shape=(n_dofs, n_dofs)).tocsr()
+    return A_global
+
+
+def assemble_stiffness(mesh, material, section, integration_order='full',
+                       sparse=False):
     """
     Assemble global stiffness matrix from element contributions.
 
     Loops over all elements in the mesh, computes element stiffness
-    matrices, and scatters them to the global stiffness matrix using
-    the element DOF connectivity.
-
-    The element type is determined from the mesh specification, and
-    the appropriate element class is instantiated using a factory pattern.
+    matrices, and adds them into the global matrix at the element DOF
+    indices. The element type, and with it the number of DOFs per
+    node, is taken from the mesh.
 
     Parameters
     ----------
     mesh : dict
         Mesh dictionary containing:
-        - 'nodes': (n_nodes, 2) nodal coordinates
+        - 'nodes': (n_nodes, spatial_dim) nodal coordinates
         - 'elements': (n_elements, n_nodes_per_elem) connectivity
-        - 'element_type': str, element type identifier (e.g., 'Q4', 'Truss')
-          If not provided, defaults to 'Q4' for backward compatibility.
+        - 'element_type': 'Q4', 'Truss' or 'Beam'. Defaults to 'Q4'.
     material : Material
         Material object (e.g., LinearElastic2D, LinearElastic1D)
         providing constitutive properties.
     section : Section
-        Section object (e.g., PlaneSection, TrussSection) providing
-        cross-sectional properties.
-    integration_order : str, optional
-        Integration scheme: 'full' or 'reduced'. Default is 'full'.
+        Section object (e.g., PlaneSection, TrussSection, BeamSection)
+        providing cross-sectional properties.
+    integration_order : str or int, optional
+        Integration scheme passed to each element. Default is 'full'.
+    sparse : bool, optional
+        If True, return a scipy.sparse.csr_array. Default is False.
 
     Returns
     -------
-    K_global : ndarray, shape (n_dofs, n_dofs)
-        Global stiffness matrix (symmetric, sparse in practice).
+    K_global : numpy.ndarray or scipy.sparse.csr_array,
+               shape (n_dofs, n_dofs)
+        Global stiffness matrix.
+
+    Raises
+    ------
+    ValueError
+        If element_type is not recognised.
 
     Examples
     --------
@@ -102,72 +168,51 @@ def assemble_stiffness(mesh, material, section, integration_order='full'):
     >>> material = LinearElastic1D(E=200e9)
     >>> section = TrussSection(A=0.001)
     >>> K = assemble_stiffness(truss_mesh, material, section, 'reduced')
+    """
+    return _assemble(mesh, material, section, 'compute_stiffness_matrix',
+                     integration_order, sparse)
 
-    Notes
-    -----
-    The global stiffness matrix is assembled using direct indexing
-    rather than explicit construction of connectivity matrices,
-    which is more efficient.
 
-    For large problems, consider using sparse matrix formats
-    (scipy.sparse) to reduce memory usage.
+def assemble_mass(mesh, material, section, integration_order='full',
+                  sparse=False):
+    """
+    Assemble global consistent mass matrix from element contributions.
+
+    Parameters
+    ----------
+    mesh : dict
+        Mesh dictionary, as for assemble_stiffness.
+    material : Material
+        Material object providing the density (e.g., LinearElastic1D
+        with rho set).
+    section : Section
+        Section object providing the area (e.g., BeamSection with A
+        set).
+    integration_order : str or int, optional
+        Integration scheme passed to each element. Default is 'full'.
+    sparse : bool, optional
+        If True, return a scipy.sparse.csr_array. Default is False.
+
+    Returns
+    -------
+    M_global : numpy.ndarray or scipy.sparse.csr_array,
+               shape (n_dofs, n_dofs)
+        Global mass matrix.
 
     Raises
     ------
     ValueError
-        If element_type is not recognized or not available.
+        If element_type is not recognised, or the element type has no
+        mass matrix.
+
+    Examples
+    --------
+    >>> from femlib.mesh import create_beam_mesh
+    >>> from femlib.materials import LinearElastic1D
+    >>> from femlib.sections import BeamSection
+    >>> mesh = create_beam_mesh(2.0, 10)
+    >>> M = assemble_mass(mesh, LinearElastic1D(E=210e9, rho=7850.0),
+    ...                   BeamSection(I=8.0e-6, A=0.01))
     """
-    # Import element classes (lazy import to avoid circular dependencies)
-    from ..elements import Q4Element, Truss
-
-    # Element type registry
-    ELEMENT_TYPES = {
-        'Q4': Q4Element,
-        'Truss': Truss,
-    }
-
-    nodes = mesh['nodes']
-    elements = mesh['elements']
-
-    # Determine element type from mesh specification
-    element_type_str = mesh.get('element_type', 'Q4')  # Default to Q4
-
-    if element_type_str not in ELEMENT_TYPES:
-        available = ', '.join(ELEMENT_TYPES.keys())
-        raise ValueError(
-            f"Unknown element type '{element_type_str}'. "
-            f"Available types: {available}"
-        )
-
-    ElementClass = ELEMENT_TYPES[element_type_str]
-
-    n_nodes = nodes.shape[0]
-    n_dofs = 2 * n_nodes  # 2 DOFs per node (u, v) for 2D problems
-
-    # Initialise global stiffness matrix (dense for now)
-    K_global = np.zeros((n_dofs, n_dofs))
-
-    # Loop over elements
-    for elem_id, elem_nodes in enumerate(elements):
-        # Extract nodal coordinates for this element
-        elem_coords = nodes[elem_nodes]
-
-        # Create element object using factory pattern
-        element = ElementClass(elem_coords)
-
-        # Compute element stiffness matrix
-        K_e = element.compute_stiffness_matrix(
-            material,
-            section,
-            integration_order=integration_order
-        )
-
-        # Get global DOF indices for this element
-        elem_dofs = get_element_dofs(elem_nodes)
-
-        # Scatter element matrix to global matrix
-        for i, dof_i in enumerate(elem_dofs):
-            for j, dof_j in enumerate(elem_dofs):
-                K_global[dof_i, dof_j] += K_e[i, j]
-
-    return K_global
+    return _assemble(mesh, material, section, 'compute_mass_matrix',
+                     integration_order, sparse)

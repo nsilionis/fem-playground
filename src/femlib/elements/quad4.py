@@ -45,6 +45,8 @@ class Q4Element(Element2D):
     >>> N = element.shape_functions(0.0, 0.0)  # Centre of element
     """
 
+    dof_names = ('ux', 'uy')
+
     def __init__(self, node_coords, validate=True):
         """Initialise Q4 element with nodal coordinates."""
         if node_coords.shape[0] != 4:

@@ -63,8 +63,8 @@ F = assemble_load_vector(mesh, load_spec)
 # ── Boundary conditions ────────────────────────────────────────────────────
 bc = {
     'constraints': [
-        {'node': node_bot_left,  'dof': 'both', 'value': 0.0},
-        {'node': node_bot_right, 'dof': 'both', 'value': 0.0},
+        {'node': node_bot_left,  'dof': 'all', 'value': 0.0},
+        {'node': node_bot_right, 'dof': 'all', 'value': 0.0},
     ]
 }
 K_bc, F_bc, c_dofs, c_vals = apply_dirichlet_bc(K, F, bc)
