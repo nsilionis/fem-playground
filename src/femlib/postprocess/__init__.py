@@ -1,8 +1,8 @@
 """
 Post-processing module for FEM analysis results.
 
-Provides utilities for stress recovery, result visualisation,
-and plotting configuration.
+Provides utilities for stress recovery, beam response recovery,
+result visualisation, and plotting configuration.
 """
 
 from .plot_config import (
@@ -18,7 +18,14 @@ from .stress_recovery import (
     get_nodal_strain_component
 )
 
+from .beam_response import (
+    beam_curvature,
+    beam_displacement,
+    surface_strain
+)
+
 from .visualisation import (
+    plot_beam_modes,
     plot_contour_field,
     plot_displacement_field,
     plot_stress_field,
@@ -35,7 +42,12 @@ __all__ = [
     'compute_von_mises_stress',
     'get_nodal_stress_component',
     'get_nodal_strain_component',
+    # Beam response recovery
+    'beam_curvature',
+    'beam_displacement',
+    'surface_strain',
     # Visualization
+    'plot_beam_modes',
     'plot_contour_field',
     'plot_displacement_field',
     'plot_stress_field',

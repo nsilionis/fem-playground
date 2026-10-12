@@ -3,12 +3,14 @@ Visualisation utilities for FEM results.
 
 This module provides contour plotting functions for displacement,
 stress, and strain fields using matplotlib's triangulation-based
-contour plotting.
+contour plotting, and mode-shape plots for beam meshes.
 """
 
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.tri import Triangulation
+
+from .beam_response import beam_displacement
 
 
 def plot_contour_field(mesh, field_data, field_name, **kwargs):
@@ -361,3 +363,53 @@ def plot_strain_field(mesh, field_data, component='epsilon_xx',
     strain_values = get_nodal_strain_component(field_data, component)
 
     return plot_contour_field(mesh, strain_values, component, **kwargs)
+
+
+def plot_beam_modes(mesh, modes, n_modes=4, n_points=401):
+    """
+    Plot beam mode shapes, one panel per mode, two panels per row.
+
+    Each mode is drawn from its Hermite interpolation at n_points
+    positions, scaled to unit maximum magnitude, with the nodal values
+    marked.
+
+    Parameters
+    ----------
+    mesh : dict
+        Beam mesh, as from create_beam_mesh.
+    modes : numpy.ndarray, shape (n_dofs, n_available)
+        Mode shapes, one per column, as from solve_eigen.
+    n_modes : int, optional
+        Number of modes to plot. Default is 4.
+    n_points : int, optional
+        Number of positions for each curve. Default is 401.
+
+    Returns
+    -------
+    fig : matplotlib.figure.Figure
+    axes : numpy.ndarray of matplotlib.axes.Axes
+    """
+    x_nodes = mesh['nodes'][:, 0]
+    x = np.linspace(x_nodes[0], x_nodes[-1], n_points)
+    w = beam_displacement(mesh, modes[:, :n_modes], x)
+    w_nodes = beam_displacement(mesh, modes[:, :n_modes], x_nodes)
+
+    n_rows = int(np.ceil(n_modes / 2))
+    fig, axes = plt.subplots(n_rows, 2, figsize=(6.4, 2.4 * n_rows),
+                             sharex=True, squeeze=False)
+    for i, ax in enumerate(axes.flat):
+        if i >= n_modes:
+            ax.set_visible(False)
+            continue
+        scale = np.max(np.abs(w[:, i]))
+        ax.axhline(0.0, color='#B0B0B0', linewidth=0.6)
+        ax.plot(x, w[:, i] / scale, color='#4878D0', label='Mode shape')
+        ax.plot(x_nodes, w_nodes[:, i] / scale, 'o', color='#4878D0',
+                markerfacecolor='#D9D9D9', markersize=4.5, zorder=3,
+                label='Nodes')
+        ax.set_ylabel(rf'$\phi_{i + 1} / \max|\phi_{i + 1}|$')
+    for ax in axes[-1]:
+        ax.set_xlabel(r'$x\ [\mathrm{m}]$')
+    axes[0, 0].legend()
+    fig.tight_layout()
+    return fig, axes
