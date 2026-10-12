@@ -1,4 +1,4 @@
-"""Test stress/strain visualisation."""
+"""Demonstration of stress and displacement contour plots."""
 
 from pathlib import Path
 import numpy as np

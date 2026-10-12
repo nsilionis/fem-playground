@@ -131,6 +131,13 @@ The scripts in `examples/` write their figures to
   theory.
 - `assignment_reference.py`: reference solution for the shear
   locking assignment.
+- `demo_stress_recovery.py`: stress and strain recovery on a Q4
+  cantilever, printed to the screen.
+- `demo_visualisation.py`: contour plots of stress and displacement
+  for a Q4 cantilever.
+- `demo_pinned_beam.py`: Q4 beam pinned at both bottom corners under
+  a uniform load on its top edge, with midspan displacements and
+  stress and strain fields.
 - `verify_beam_frequencies.py`: convergence of the first four
   frequencies of simply supported and clamped beams under mesh
   refinement, against the exact values.

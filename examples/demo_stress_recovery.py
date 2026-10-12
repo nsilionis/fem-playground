@@ -1,4 +1,4 @@
-"""Quick test of stress recovery functionality."""
+"""Demonstration of stress and strain recovery on a Q4 cantilever."""
 
 import numpy as np
 from femlib.mesh import create_rectangular_mesh
