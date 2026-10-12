@@ -109,6 +109,12 @@ def solve_system(K, F, constrained_dofs=None, prescribed_values=None,
 
 
 def _solve_sparse(K, F, free_dofs, dof_names, max_ratio):
+    """Solve a sparse system through the checked factorisation."""
+    lu = _factorise_sparse(K, free_dofs, dof_names, max_ratio)
+    return lu.solve(np.asarray(F, dtype=float))
+
+
+def _factorise_sparse(K, free_dofs, dof_names, max_ratio):
     """LU with symmetric ordering and diagonal pivots; pivots checked."""
     A = sp.csc_array(K)
     try:
@@ -151,9 +157,9 @@ def _solve_sparse(K, F, free_dofs, dof_names, max_ratio):
             f"{ratios[worst]:.3e} exceeds max_ratio={max_ratio:.1e} at "
             f"{where(worst)}. The solution may be inaccurate.",
             scipy.linalg.LinAlgWarning,
-            stacklevel=3,
+            stacklevel=4,
         )
-    return lu.solve(np.asarray(F, dtype=float))
+    return lu
 
 
 def compute_reaction_forces(K_original, u, constrained_dofs):
