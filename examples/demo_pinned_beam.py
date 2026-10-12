@@ -5,7 +5,7 @@ Geometry  : 4 m (L) x 2 m (H) x 0.2 m (t), plane stress
 Supports  : pin at both bottom corner nodes (ux = uy = 0)
 Load      : uniform downward load q = 20 kN/m along top edge
 Mesh      : 40 x 20 Q4 elements (full integration)
-Material  : E = 100 MPa, nu = 0.30 (structural steel)
+Material  : E = 100 MPa (Young's modulus), nu = 0.30
 """
 
 import matplotlib.pyplot as plt
