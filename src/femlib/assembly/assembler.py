@@ -63,6 +63,22 @@ def _element_class(mesh):
     return element_types[name]
 
 
+def _sections_per_element(section, n_elements):
+    """List of one section per element.
+
+    A single section is repeated for every element. A list or tuple
+    is returned as a list after its length has been checked.
+    """
+    if isinstance(section, (list, tuple)):
+        if len(section) != n_elements:
+            raise ValueError(
+                f"Expected one section per element ({n_elements}), "
+                f"got {len(section)}"
+            )
+        return list(section)
+    return [section] * n_elements
+
+
 def _assemble(mesh, material, section, method, integration_order, sparse):
     """Assemble the global matrix given by an element method."""
     ElementClass = _element_class(mesh)
@@ -73,6 +89,7 @@ def _assemble(mesh, material, section, method, integration_order, sparse):
         )
     nodes = mesh['nodes']
     elements = mesh['elements']
+    sections = _sections_per_element(section, len(elements))
     dofs_per_node = len(ElementClass.dof_names)
     n_dofs = dofs_per_node * nodes.shape[0]
 
@@ -81,10 +98,10 @@ def _assemble(mesh, material, section, method, integration_order, sparse):
     else:
         A_global = np.zeros((n_dofs, n_dofs))
 
-    for elem_nodes in elements:
+    for elem_nodes, elem_section in zip(elements, sections):
         element = ElementClass(nodes[elem_nodes])
         A_e = getattr(element, method)(
-            material, section, integration_order=integration_order
+            material, elem_section, integration_order=integration_order
         )
         elem_dofs = get_element_dofs(elem_nodes, dofs_per_node)
 
@@ -126,9 +143,11 @@ def assemble_stiffness(mesh, material, section, integration_order='full',
     material : Material
         Material object (e.g., LinearElastic2D, LinearElastic1D)
         providing constitutive properties.
-    section : Section
+    section : Section or sequence of Section
         Section object (e.g., PlaneSection, TrussSection, BeamSection)
-        providing cross-sectional properties.
+        providing cross-sectional properties. A single section applies
+        to every element. A list or tuple gives one section per
+        element, in the order of mesh['elements'].
     integration_order : str or int, optional
         Integration scheme passed to each element. Default is 'full'.
     sparse : bool, optional
@@ -143,7 +162,8 @@ def assemble_stiffness(mesh, material, section, integration_order='full',
     Raises
     ------
     ValueError
-        If element_type is not recognised.
+        If element_type is not recognised, or a sequence of sections
+        does not hold one section per element.
 
     Examples
     --------
@@ -168,6 +188,10 @@ def assemble_stiffness(mesh, material, section, integration_order='full',
     >>> material = LinearElastic1D(E=200e9)
     >>> section = TrussSection(A=0.001)
     >>> K = assemble_stiffness(truss_mesh, material, section, 'reduced')
+
+    >>> # One section per element
+    >>> sections = [TrussSection(A=a) for a in (1e-3, 2e-3, 5e-4)]
+    >>> K = assemble_stiffness(truss_mesh, material, sections)
     """
     return _assemble(mesh, material, section, 'compute_stiffness_matrix',
                      integration_order, sparse)
@@ -185,9 +209,10 @@ def assemble_mass(mesh, material, section, integration_order='full',
     material : Material
         Material object providing the density (e.g., LinearElastic1D
         with rho set).
-    section : Section
+    section : Section or sequence of Section
         Section object providing the area (e.g., BeamSection with A
-        set).
+        set). A list or tuple gives one section per element, as for
+        assemble_stiffness.
     integration_order : str or int, optional
         Integration scheme passed to each element. Default is 'full'.
     sparse : bool, optional
@@ -202,8 +227,9 @@ def assemble_mass(mesh, material, section, integration_order='full',
     Raises
     ------
     ValueError
-        If element_type is not recognised, or the element type has no
-        mass matrix.
+        If element_type is not recognised, the element type has no
+        mass matrix, or a sequence of sections does not hold one
+        section per element.
 
     Examples
     --------

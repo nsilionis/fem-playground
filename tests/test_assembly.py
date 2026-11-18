@@ -1,4 +1,4 @@
-"""Global assembly: beam mass, sparse against dense."""
+"""Global assembly: beam mass, sparse against dense, per-element sections."""
 
 import numpy as np
 import pytest
@@ -66,3 +66,40 @@ def test_sparse_matches_dense(build, assemble):
     sparse = assemble(mesh, material, section, sparse=True)
     assert isinstance(sparse, sp.csr_array)
     assert close(sparse.toarray(), dense)
+
+
+def test_section_list_of_one_repeated_section_matches_single():
+    mesh, material, section = _truss()
+    single = assemble_stiffness(mesh, material, section)
+    listed = assemble_stiffness(mesh, material, [section] * 3)
+    assert close(listed, single)
+
+
+@pytest.mark.parametrize("sparse", [False, True])
+def test_per_element_sections_sum_of_single_elements(sparse):
+    mesh, material, _ = _truss()
+    sections = [TrussSection(A=a) for a in (1e-3, 2e-3, 5e-4)]
+    K = assemble_stiffness(mesh, material, sections, sparse=sparse)
+    expected = sum(
+        assemble_stiffness({**mesh, "elements": mesh["elements"][[e]]},
+                           material, sections[e])
+        for e in range(3)
+    )
+    assert close(K.toarray() if sparse else K, expected)
+
+
+def test_per_element_sections_beam_mass():
+    L = 2.0
+    mesh = create_beam_mesh(L, 4)
+    areas = [0.01, 0.02, 0.03, 0.04]
+    sections = [BeamSection(I=8.0e-6, A=a) for a in areas]
+    M = assemble_mass(mesh, STEEL, sections)
+    u = np.zeros(M.shape[0])
+    u[0::2] = 1.0
+    assert close(u @ M @ u, 7850.0 * sum(areas) * L / 4)
+
+
+def test_section_list_of_wrong_length_rejected():
+    mesh, material, section = _truss()
+    with pytest.raises(ValueError, match="one section per element"):
+        assemble_stiffness(mesh, material, [section] * 2)

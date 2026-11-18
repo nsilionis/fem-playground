@@ -18,7 +18,8 @@ educational purposes, developed as part of an FEA course.
   be given as constants or as functions of position x.
 - Assembly of the global stiffness matrix, dense or sparse, for any
   of the elements above. The consistent mass matrix is assembled for
-  the beam element only.
+  the beam element only. One section may serve the whole mesh, or a
+  list may give one section per element.
 - Dirichlet boundary conditions by elimination or by penalty,
   addressed by node and named degree of freedom.
 - Linear static solution by Cholesky factorisation (dense) or by a
@@ -131,6 +132,12 @@ The scripts in `examples/` write their figures to
   theory.
 - `assignment_reference.py`: reference solution for the shear
   locking assignment.
+- `bike_frame_reference.py`: reference solution for the bicycle frame
+  sizing assignment. The frame is solved as a truss, and each member
+  gets a strength safety factor and a buckling utilisation. The tube
+  diameters, the static loads and a dynamic load factor for each load
+  are command-line options, so a student's design can be checked; run
+  it with `--help` for the list.
 - `demo_stress_recovery.py`: stress and strain recovery on a Q4
   cantilever, printed to the screen.
 - `demo_visualisation.py`: contour plots of stress and displacement
@@ -144,7 +151,7 @@ The scripts in `examples/` write their figures to
 - `verify_beam_modes.py`: beam mode shapes, and convergence of the
   modal curvature in the energy norm.
 
-`assignment_reference.py` and the two beam scripts accept `--show`
+The two reference scripts and the two beam scripts accept `--show`
 to display the figures as well as saving them.
 
 ## Project Structure
