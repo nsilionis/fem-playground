@@ -144,8 +144,8 @@ The scripts in `examples/` write their figures to
 - `verify_beam_modes.py`: beam mode shapes, and convergence of the
   modal curvature in the energy norm.
 
-The two beam scripts accept `--show` to display the figures as well
-as saving them.
+`assignment_reference.py` and the two beam scripts accept `--show`
+to display the figures as well as saving them.
 
 ## Project Structure
 ```

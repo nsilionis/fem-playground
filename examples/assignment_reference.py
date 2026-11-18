@@ -3,9 +3,11 @@ Reference solution for cantilever beam locking assignment.
 
 This script generates all required results for the shear locking
 investigation assignment, including displacement comparisons,
-error plots, stress contours, and tabulated results.
+error plots, stress contours, and tabulated results. Writes the
+figures to outputs/figures/assignment; --show also displays them.
 """
 
+import argparse
 from pathlib import Path
 import numpy as np
 import matplotlib.pyplot as plt
@@ -186,7 +188,7 @@ def solve_cantilever(L, h, t, E, nu, P, nx, ny, integration_order):
     return results
 
 
-def main():
+def main(show=False):
     """Run complete assignment reference analysis."""
     # Apply plotting style
     setup_plot_style()
@@ -409,7 +411,8 @@ def main():
         filename = f'displacement_{integration_name}_integration.pdf'
         plt.savefig(output_dir / filename, bbox_inches='tight')
         print(f"  Saved: {filename}")
-        plt.close()
+        if not show:
+            plt.close(fig)
 
     # ================================================================
     # ERROR PLOTS
@@ -470,7 +473,8 @@ def main():
         filename = f'error_{integration_name}_integration.pdf'
         plt.savefig(output_dir / filename, bbox_inches='tight')
         print(f"  Saved: {filename}")
-        plt.close()
+        if not show:
+            plt.close(fig)
 
     # ================================================================
     # STRESS CONTOUR PLOTS
@@ -517,7 +521,8 @@ def main():
                 plt.savefig(output_dir / filename,
                             bbox_inches='tight')
                 print(f"  Saved: {filename}")
-                plt.close()
+                if not show:
+                    plt.close(fig)
 
     # ================================================================
     # SUMMARY
@@ -535,6 +540,13 @@ def main():
     print("      hourglassing (zero-energy modes with ny=1).")
     print("\n" + "=" * 70 + "\n")
 
+    if show:
+        plt.show()
+
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[1])
+    parser.add_argument("--show", action="store_true",
+                        help="display the figures after saving them")
+    args = parser.parse_args()
+    main(show=args.show)
